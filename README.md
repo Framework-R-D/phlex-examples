@@ -53,3 +53,21 @@ Processed layers:
 ```
 
 ### Job with Python algorithms
+
+To run a job that uses a Python algorithm, the `PYTHONPATH` environment variable must be adjusted to include the directory with the Python module:
+
+```console
+$ PYTHONPATH=$(realpath ~/phlex-examples):$PYTHONPATH
+$ phlex -c ~/phlex-examples/test-py-workflow.jsonnet
+Using configuration file: /home/knoepfel/phlex-examples/test-py-workflow.jsonnet
+[2025-12-22 13:50:07.999] [info] Number of worker threads: 24
+[2025-12-22 13:50:08.013] [info]
+Processed layers:
+
+  job
+
+[2025-12-22 13:50:08.013] [info] CPU time: 0.01022s  Real time: 0.01483s  CPU efficiency:  68.91%
+[2025-12-22 13:50:08.013] [info] Max. RSS: 29.628 MB
+```
+
+_*N.B.* Writing Python data products to an output file is not yet supported._
