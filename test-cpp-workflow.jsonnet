@@ -1,17 +1,22 @@
 {
-  source: {
-    plugin: 'generate_layers',
+  driver: {
+    cpp: 'generate_layers',
     layers: {
       event: { parent: "job", total: 10, starting_number: 1 }
     }
   },
+  sources: {
+    ij_source: {
+      cpp: 'ij_source'
+    }
+  },
   modules: {
     add_cpp: {
-      plugin: 'module',
+      cpp: 'module',
     },
     # Write "sum" data product to output file
     output: {
-      plugin: 'form_module',
+      cpp: 'form_module',
       products: ["sum"]
     },
   },

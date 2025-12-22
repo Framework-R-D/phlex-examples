@@ -9,7 +9,12 @@ find_package(spdlog REQUIRED)
 find_package(phlex REQUIRED)
 
 # Proxies for framework-agnostic experiment libraries
+# N.B. The specified library type should be SHARED.
 add_library(my_add SHARED my_add.cpp)
+
+# Register providers for data products
+add_library(ij_source MODULE ij_source.cpp)
+target_link_libraries(ij_source PRIVATE phlex::module)
 
 # Register experiment libraries with Phlex
 add_library(module MODULE module.cpp)
