@@ -70,4 +70,7 @@ Processed layers:
 [2025-12-22 13:50:08.013] [info] Max. RSS: 29.628 MB
 ```
 
-_*N.B.* Writing Python data products to an output file is not yet supported._
+> [!NOTE]
+> For Phlex 0.1.0, Python data products:
+> - Cannot be written to output files
+> - Must belong to the `"job"` data layer
