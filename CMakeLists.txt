@@ -8,6 +8,8 @@ find_package(TBB REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(phlex REQUIRED)
 
+add_subdirectory(gaus_hit_finder)
+
 # Proxies for framework-agnostic experiment libraries
 # N.B. The specified library type should be SHARED.
 add_library(my_add SHARED my_add.cpp)
