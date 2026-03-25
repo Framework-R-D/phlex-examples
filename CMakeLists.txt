@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.31)
 project(my_phlex_example VERSION 0.0.1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 find_package(Boost REQUIRED json)
 find_package(TBB REQUIRED)

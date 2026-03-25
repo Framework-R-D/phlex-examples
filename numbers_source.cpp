@@ -9,7 +9,7 @@ PHLEX_REGISTER_PROVIDERS(m, config)
   auto const layer = config.get<std::string>("layer");
 
   m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number(); })
-    .output_product("i"_in(layer));
+    .output_product({.creator = "input", .suffix = "i", .layer = layer});
   m.provide("provide_j", [](data_cell_index const& id) -> int { return -id.number(); })
-    .output_product("j"_in(layer));
+    .output_product({.creator = "input", .suffix = "j", .layer = layer});
 }
