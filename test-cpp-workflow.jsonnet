@@ -6,6 +6,10 @@
     },
   },
   sources: {
+    geometry_source: {
+      cpp: 'geometry_source',
+      geometry_name: 'standard',
+    },
     numbers_source: {
       cpp: 'numbers_source',
       layer: 'spill',
@@ -19,7 +23,7 @@
     // Write "sum" data product to output file
     output: {
       cpp: 'form_module',
-      products: ['sum'],
+      products: ['i', 'j', 'sum'],
     },
   },
 }
