@@ -7,7 +7,7 @@ This repository contains examples of the use of the [Phlex framework](https://gi
 To use the code in this repository, first install it:
 
 ```console
-git clone https://github.com/Framework-R-D/phlex-examples.git
+git clone -b phlex-v0.2 https://github.com/Framework-R-D/phlex-examples.git
 ```
 
 Now create a build directory:
@@ -88,6 +88,8 @@ Processed layers:
 ```
 
 > [!NOTE]
-> For Phlex 0.1.0, Python data products:
+> For Phlex v0.1.0, Python data products:
 > - Cannot be written to output files
 > - Must belong to the `"job"` data layer
+>
+> For Phlex v0.2.0, Python data products cannot be written to output files.
