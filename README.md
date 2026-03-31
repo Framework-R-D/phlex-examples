@@ -7,7 +7,7 @@ This repository contains examples of the use of the [Phlex framework](https://gi
 To use the code in this repository, first install it:
 
 ```console
-git clone https://github.com/Framework-R-D/phlex-examples.git
+git clone -b phlex-v0.1 https://github.com/Framework-R-D/phlex-examples.git
 ```
 
 Now create a build directory:
