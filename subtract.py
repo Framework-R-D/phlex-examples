@@ -38,4 +38,4 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     """
     m.transform(subtract,
                 input_family = config["input"],
-                output_products = config["output"])
+                output_product_suffixes = config["output"])
