@@ -20,7 +20,7 @@ The repository can now be easily built by activating [the environment you create
 
 ```console
 spack env activate my-phlex-environment
-spack load cmake gcc@14  # adjust if you used a different compiler for phlex
+spack load cmake gcc@15  # adjust if you used a different compiler for phlex
 cmake ../phlex-examples
 make -j 12  # choose a suitable number of jobs for your machine
 ```
