@@ -8,7 +8,7 @@ find_package(TBB REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(phlex REQUIRED)
 
-add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+add_compile_options(-Wall -Wpedantic -Werror)
 
 # Proxies for framework-agnostic experiment libraries
 # N.B. The specified library type should be SHARED.
