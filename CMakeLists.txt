@@ -3,10 +3,23 @@ project(my_phlex_example VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14.1")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15")
+      add_compile_options(-Wno-stringop-overflow)
+    endif()
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16")
+      add_compile_options(-Wno-array-bounds)
+    endif()
+  endif()
+endif()
+
 find_package(Boost REQUIRED json)
 find_package(TBB REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(phlex REQUIRED)
+
+add_subdirectory(gaus_hit_finder)
 
 add_compile_options(-Wall -Wpedantic -Werror)
 
