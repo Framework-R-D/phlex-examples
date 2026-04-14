@@ -37,5 +37,5 @@ PHLEX_REGISTER_PROVIDERS(m, config)
     throw std::runtime_error("Failure while reading from file: " + filename);
     return {};
   })
-  .output_product("wires"_in(layer));
+  .output_product(product_query{.creator = "wires", .layer = layer, .suffix = ""});
 }

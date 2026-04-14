@@ -86,7 +86,7 @@ namespace examples {
     tbb::parallel_for(
       static_cast<std::size_t>(0),
       wires.size(),
-      [&](size_t& wireIter) {
+      [&](size_t wireIter) {
         // ####################################
         // ### Getting this particular wire ###
         // ####################################
@@ -121,7 +121,7 @@ namespace examples {
         tbb::parallel_for(
           static_cast<std::size_t>(0),
           signalROI.n_ranges(),
-          [&](size_t& rangeIter) {
+          [&](size_t rangeIter) {
             const auto& range = signalROI.range(rangeIter);
             // ROI start time
             raw::TDCtick_t roiFirstBinTick = range.begin_index();
