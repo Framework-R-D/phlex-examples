@@ -1,0 +1,1 @@
+add_subdirectory(gauss_hit_finder)
