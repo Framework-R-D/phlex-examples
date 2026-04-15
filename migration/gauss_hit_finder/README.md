@@ -13,7 +13,7 @@ module used by DUNE or any other experiment
 for production or physics. That belongs in some other
 repository.
 
-This example is based on version v0.1.0 of `phlex`. It will need
+This example is based on version v0.2.0 of `phlex`. It will need
 some minor modifications to work with the newest version of `phlex`.
 The migration to phlex started with version of GausHitFinder_module.cc
 in v10_05_00 of larreco which was the version in use with DUNE software
