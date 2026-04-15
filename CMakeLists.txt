@@ -19,7 +19,7 @@ find_package(TBB REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(phlex REQUIRED)
 
-add_subdirectory(gaus_hit_finder)
+add_subdirectory(migration)
 
 add_compile_options(-Wall -Wpedantic -Werror)
 

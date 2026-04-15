@@ -13,7 +13,7 @@ module used by DUNE or any other experiment
 for production or physics. That belongs in some other
 repository.
 
-This example is based on version v0.1.0 of `phlex`. It will need
+This example is based on version v0.2.0 of `phlex`. It will need
 some minor modifications to work with the newest version of `phlex`.
 The migration to phlex started with version of GausHitFinder_module.cc
 in v10_05_00 of larreco which was the version in use with DUNE software
@@ -27,7 +27,7 @@ that this example will change as we learn more about using
 is more like a rough first draft of our first attempts
 to use `phlex`. Please don't expect stability. Many features
 of `phlex` have not been implemented and the design of `phlex`
-itself is changing. Those changes will also cause this example 
+itself is changing. Those changes will also cause this example
 to change.
 
 As we study this example, it will guide how phlex is used.
@@ -46,10 +46,10 @@ issues and remove performance bottlenecks.
 
 ## These files exist only for test purposes
 
-There is one function that will print out reconstructed hits. 
-This printout can be used to compare results between an 
-`art` process and a `phlex` process running GausHitFinder. 
-There are functions that can be used to persistently store 
+There is one function that will print out reconstructed hits.
+This printout can be used to compare results between an
+`art` process and a `phlex` process running GausHitFinder.
+There are functions that can be used to persistently store
 the input from an `art` process (a vector of `Wire`) so
 it can be used in the `phlex` process. And there is a `phlex` provider
 to read this input. This persistence mechanism is necessary
@@ -65,8 +65,8 @@ temporary and not part of the example.
 ## Files copied from LArSoft
 
 The infrastructure does not yet exist to link the
-code here with LArSoft code or include headers. 
-Necessary files are copied in with minimal changes. 
+code here with LArSoft code or include headers.
+Necessary files are copied in with minimal changes.
 Some changes are necessary because the files are in
 a different location and some remove unwanted dependences,
 but the modifications are small. When it is possible
@@ -75,7 +75,7 @@ these files should be deleted to remove duplication.
 
 These files are in the subdirectory:
 
-  ```phlex-examples/gaus_hit_finder/copied_from_larsoft_minor_edits```
+  ```phlex-examples/migration/gauss_hit_finder/copied_from_larsoft_minor_edits```
 
 # Where more work is needed
 
