@@ -27,6 +27,8 @@ extensions = [
     'sphinx.ext.autosectionlabel',
 ]
 
+exclude_patterns = ['.venv/**', '.venv']
+
 autosectionlabel_prefix_document = True
 numfig = True
 numfig_format = {
