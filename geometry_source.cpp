@@ -9,5 +9,5 @@ PHLEX_REGISTER_PROVIDERS(s, config)
             [geometry_name](phlex::data_cell_index const& /* job */) -> examples::geometry {
               return examples::geometry{geometry_name};
             })
-    .output_product({.creator = "input", .layer = "job", .suffix = "geometry"});
+    .output_product("input", "geometry", "job");
 }

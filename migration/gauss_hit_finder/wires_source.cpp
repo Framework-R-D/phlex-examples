@@ -26,7 +26,7 @@ PHLEX_REGISTER_PROVIDERS(m, config)
 {
   auto const layer = config.get<std::string>("layer");
 
-  m.provide("provide_wires", [](data_cell_index const& id) -> std::vector<recob::Wire> { 
+  m.provide("provide_wires", [](data_cell_index const& id) -> std::vector<recob::Wire> {
     int current_value = fileCounter.fetch_add(1);
     std::string filename = std::string("wires_") + std::to_string(current_value) + ".dat";
 
@@ -37,5 +37,5 @@ PHLEX_REGISTER_PROVIDERS(m, config)
     throw std::runtime_error("Failure while reading from file: " + filename);
     return {};
   })
-  .output_product(product_query{.creator = "wires", .layer = layer, .suffix = ""});
+    .output_product("wires", "", experimental::identifier{layer});
 }
