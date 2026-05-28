@@ -84,6 +84,6 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
                                                            *hit_filter_alg);
              },
               concurrency::unlimited)
-    .input_family(product_query{.creator = "wires", .layer = layer, .suffix = ""})
+    .input_family(product_selector{.creator = "wires", .layer = layer, .suffix = ""})
     .output_product_suffixes("hits");
 }

@@ -23,11 +23,11 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   auto const layer = config.get<std::string>("layer");
 
   m.transform("add", examples::add, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = layer, .suffix = "i"},
-                  product_query{.creator = "input", .layer = layer, .suffix = "j"})
+    .input_family(product_selector{.creator = "input", .layer = layer, .suffix = "i"},
+                  product_selector{.creator = "input", .layer = layer, .suffix = "j"})
     .output_product_suffixes("sum");
 
   m.observe("verify", verify_sum, concurrency::unlimited)
-    .input_family(product_query{.creator = "input", .layer = "job"},
-                  product_query{.creator = "add", .layer = layer});
+    .input_family(product_selector{.creator = "input", .layer = "job"},
+                  product_selector{.creator = "add", .layer = layer});
 }
