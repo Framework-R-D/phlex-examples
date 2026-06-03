@@ -13,4 +13,10 @@ algorithms.
    :numbered:
 
    introduction
-   
+   preparation
+  
+.. toctree::
+   :maxdepth: 1
+   :caption: Appendices
+
+   art_ptr_removal
