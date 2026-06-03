@@ -14,7 +14,7 @@ algorithms.
 
    introduction
    preparation
-  
+   refactoring
 .. toctree::
    :maxdepth: 1
    :caption: Appendices
