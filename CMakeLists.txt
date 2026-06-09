@@ -42,3 +42,13 @@ target_link_libraries(add_and_verify PRIVATE phlex::module my_add my_geometry)
 # Enable asserts for add_and_verify
 # N.B. This should not be done for production code, but it is useful for testing and development.
 target_compile_options(add_and_verify PRIVATE -UNDEBUG)
+
+# Unfold example: vector<int> on parent layer -> int on child layer
+add_library(vector_source MODULE vector_source.cpp)
+target_link_libraries(vector_source PRIVATE phlex::module)
+
+add_library(split_square_verify MODULE split_square_verify.cpp)
+target_link_libraries(split_square_verify PRIVATE phlex::module)
+
+# Enable asserts for split_square_verify
+target_compile_options(split_square_verify PRIVATE -UNDEBUG)
