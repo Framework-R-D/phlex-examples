@@ -7,6 +7,19 @@ to separate the code into two parts:
 * an algorithm part, and
 * a framework-dependent part.
 
+Algorithm part
+  Contains the domain logic. This code should operate on plain C++ values,
+  experiment-specific data structures, and explicitly provided helper objects.
+
+Framework-dependent part
+  Contains configuration lookup, input retrieval, helper construction,
+  registration, and output publication.
+
+The algorithm part should answer the question, "what computation is being
+performed?" The framework part should answer, "how is this computation wired
+into the framework?"
+
+
 This is the key structural change that makes migration to *Phlex* practical.
 Without it, the migration remains a translation of framework-specific code. 
 With it, the migration becomes a matter of binding explicit inputs and outputs to a
@@ -19,29 +32,11 @@ This allows for a more modular and maintainable codebase, and makes it easier to
 A successful refactoring produces code with the following properties.
 
 * The algorithm can be called from ordinary C++.
-* The algorithm no longer depends on module callbacks such as ``produce()`` or
-  ``analyze()``.
+* The algorithm no longer depends on module callbacks such as ``produce()`` or ``analyze()``.
 * Configuration is gathered once and passed explicitly.
 * Input products are passed in as parameters.
 * Output products are returned as values.
 * Framework assumptions are visible and localized.
-
-Target Structure
-----------------
-
-The target structure is straightforward.
-
-Algorithm part
-  Contains the domain logic. This code should operate on plain C++ values,
-  experiment-specific data structures, and explicitly provided helper objects.
-
-Framework-dependent part
-  Contains configuration lookup, input retrieval, helper construction,
-  registration, and output publication.
-
-The algorithm part should answer the question, "what computation is being
-performed?" The framework part should answer, "how is this computation wired
-into the framework?"
 
 Recommended Refactoring Pattern
 -------------------------------
@@ -56,9 +51,6 @@ A useful pattern is:
 
 This pattern is intentionally simple. Most migration efforts become easier when
 there are fewer abstractions, not more.
-
-Example: Configuration as Plain Data
-------------------------------------
 
 The ``gauss_hit_finder`` example defines a plain configuration structure in
 ``find_hits_with_gaussians.hpp``:
@@ -82,9 +74,6 @@ This is a useful migration pattern because the structure can exist independent
 of either *art* or *Phlex*. It is a normal C++ representation of the settings
 that the algorithm needs.
 
-Example: Extracted Algorithm Boundary
--------------------------------------
-
 The same example exposes the algorithm through a normal function:
 
 .. code-block:: cpp
@@ -105,9 +94,6 @@ This signature makes the algorithm boundary obvious.
 
 That is the refactoring target for many *art* modules: not a callback method,
 but a normal computation with explicit dependencies.
-
-What to Move Out of the Algorithm
----------------------------------
 
 The following concerns usually belong outside the algorithmic core.
 
@@ -132,11 +118,7 @@ limitations around geometry support and comparison-oriented output. That is a
 reasonable intermediate state. The important point is that such concerns are not
 hidden behind deep framework coupling.
 
-Framework Boundary in the Example
----------------------------------
-
-In ``register_find_hits_with_gaussians.cpp``, the *Phlex* side performs the
-boundary work.
+In ``register_find_hits_with_gaussians.cpp``, the *Phlex* side performs the boundary work.
 
 First, configuration is collected:
 
@@ -157,9 +139,6 @@ First, configuration is collected:
 
 Then helper objects are constructed and captured in a lambda. Finally, that
 lambda is registered as the framework transformation.
-
-Why This Split Matters
-----------------------
 
 This split matters because it creates a stable seam in the code.
 
@@ -195,5 +174,5 @@ The following patterns usually indicate that refactoring is incomplete.
 * The new code preserves the old module structure even when the algorithm itself
   is much simpler.
 
-The goal is not to preserve familiar structure. The goal is to expose the real
-computation cleanly enough that it can be expressed in *Phlex*.
+The goal is not to preserve familiar structure. 
+The goal is to expose the real computation cleanly enough that it can be expressed in *Phlex*.
