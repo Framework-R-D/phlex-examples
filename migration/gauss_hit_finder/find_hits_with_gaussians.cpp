@@ -16,7 +16,6 @@
 
 #include "find_hits_with_gaussians.hpp"
 #include "copied_from_larsoft_minor_edits/ICandidateHitFinder.h"
-#include "print_hits.hpp"
 
 namespace {
 
@@ -451,27 +450,6 @@ namespace examples {
         hits.emplace_back(hitstruct_vec[i].hit_tbb);
       }
     }
-
-    // Sort hits by PeakTime ascending, then by PeakAmplitude ascending
-    // I added the sorting when trying to compare the output of this
-    // code with output from the art version of GausHitFinder. The parallel_for
-    // loops above scramble the order and make comparisons difficult.
-    // This should be temporary and removed.
-    std::sort(hits.begin(), hits.end(), [](const recob::Hit& a, const recob::Hit& b) {
-      if (a.PeakTime() != b.PeakTime()) {
-        return a.PeakTime() < b.PeakTime();
-      }
-      return a.PeakAmplitude() < b.PeakAmplitude();
-    });
-
-    // Temporary, only for testing purposes, print
-    // the hits to a file here. This should also be
-    // removed eventually.
-    static std::atomic<int> i = 0;
-    int current_value = i.fetch_add(1);
-    std::string filename = std::string("hits_") +
-                           std::to_string(current_value) + ".txt";
-    print_hits_to_file(hits, filename);
 
     return hits;
   } // End of find_hits_with_gaussians
