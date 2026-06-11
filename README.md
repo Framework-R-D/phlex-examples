@@ -64,6 +64,34 @@ Processed layers:
 [2025-12-22 13:17:51.760] [info] Max. RSS: 268.848 MB
 ```
 
+### Job with an unfold
+
+To run a job that demonstrates the `unfold` higher-order function — splitting a
+parent-layer product into a child layer of data cells — use:
+
+```console
+phlex -c ../phlex-examples/test-cpp-unfold-workflow.jsonnet
+```
+
+The source provides a `std::vector<int>` per `spill`, the unfold emits one `int`
+per element on a child `number` layer, a transform squares each value, and an
+observer asserts the result. The output should look like:
+
+```console
+[info]
+Processed layers:
+
+  job
+   │
+   └ spill: 5
+      │
+      └ number: 15
+
+[info] CPU time: ...
+```
+
+`number: 15` is 3 elements × 5 spills.
+
 ### Job with Python algorithms
 
 To run a job that uses a Python algorithm, the `PYTHONPATH` environment variable must be adjusted to include the directory with the Python module:
