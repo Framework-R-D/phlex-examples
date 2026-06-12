@@ -203,6 +203,26 @@ The examples deck shows a minimal transform based on a pure function:
      return result;
    }
 
+   class PowerProducer : public art::EDProducer {
+   public:
+     explicit PowerProducer(fhicl::ParameterSet const& pset)
+       : input_token_{consumes<int>(pset.get<art::InputTag>("input_tag"))}
+       , exponent_{pset.get<unsigned>("exponent")}
+     {
+       produces<int>();
+     }
+
+     void produce(art::Event& event) override
+     {
+       auto const& value = event.getProduct(input_token_);
+       event.put(std::make_unique<int>(power(value, exponent_)));
+     }
+
+   private:
+     art::ProductToken<int> input_token_;
+     unsigned exponent_;
+   };
+
 In *art*, this appears as a producer with a consumed input token, an ``exponent``
 member, a ``produce()`` callback, and an ``event.put(...)`` call. In *Phlex*,
 the same computation is expressed directly as a transform:
