@@ -7,7 +7,7 @@ This repository contains examples of the use of the [Phlex framework](https://gi
 To use the code in this repository, first install it:
 
 ```console
-git clone -b phlex-v0.2 https://github.com/Framework-R-D/phlex-examples.git
+git clone -b phlex-v0.3 https://github.com/Framework-R-D/phlex-examples.git
 ```
 
 Now create a build directory:
@@ -20,7 +20,7 @@ The repository can now be easily built by activating [the environment you create
 
 ```console
 spack env activate my-phlex-environment
-spack load cmake gcc@15  # adjust if you used a different compiler for phlex
+spack load gcc@15 cmake  # adjust if you used a different compiler for phlex
 cmake ../phlex-examples
 make -j 12  # choose a suitable number of jobs for your machine
 ```
@@ -120,4 +120,4 @@ Processed layers:
 > - Cannot be written to output files
 > - Must belong to the `"job"` data layer
 >
-> For Phlex v0.2.0, Python data products cannot be written to output files.
+> For Phlex v0.3.0, Python data products cannot be written to output files.
