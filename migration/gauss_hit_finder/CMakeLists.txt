@@ -53,15 +53,46 @@ add_test(NAME GausHitFinderTest
 # iterates 0 to 4 inclusive, creating a test to compare the output hits of
 # the phlex job to the output hits of the art job for each event (5 events).
 # In this test, the art "events" are called "spills" in phlex.
-foreach(n RANGE 4)
-  add_test(
-    NAME GausHitFinderCompare_${n}
-    COMMAND diff -q -s
-    ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
-    ${CMAKE_CURRENT_BINARY_DIR}/hits_${n}.txt
-  )
-  set_tests_properties(GausHitFinderCompare_${n} PROPERTIES DEPENDS GausHitFinderTest )
-endforeach()
+
+# The reference files were generated on a Linux machine
+# so we expect identical output on Linux
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  foreach(n RANGE 4)
+    add_test(
+      NAME GausHitFinderCompare_${n}
+      COMMAND diff -q -s
+      ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
+      ${CMAKE_CURRENT_BINARY_DIR}/hits_${n}.txt
+    )
+    set_tests_properties(GausHitFinderCompare_${n} PROPERTIES DEPENDS GausHitFinderTest)
+  endforeach()
+# On a Mac, we expect the output to be slightly
+# different because the reference files were
+# generated on a Linux machine.
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  foreach(n RANGE 4)
+    add_test(
+      NAME GausHitFinderCompare_${n}
+      COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/compare_hits.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
+      ${CMAKE_CURRENT_BINARY_DIR}/hits_${n}.txt
+    )
+    set_tests_properties(GausHitFinderCompare_${n} PROPERTIES DEPENDS GausHitFinderTest)
+  endforeach()
+# Always fail on other platforms
+# This will warn us to add a new comparison
+# method if we ever run on a new platform.
+else()
+  foreach(n RANGE 4)
+    add_test(
+      NAME GausHitFinderCompare_${n}
+      COMMAND ${CMAKE_COMMAND} -E false
+    )
+    set_tests_properties(GausHitFinderCompare_${n} PROPERTIES DEPENDS GausHitFinderTest)
+  endforeach()
+endif()
 
 # Repeat for the version with unfold-transform-fold instead of a single transform.
 add_test(NAME GausHitFinderTestWithUnfold
@@ -72,15 +103,44 @@ add_test(NAME GausHitFinderTestWithUnfold
 set_tests_properties(GausHitFinderTestWithUnfold PROPERTIES DEPENDS
                      "GausHitFinderCompare_0;GausHitFinderCompare_1;GausHitFinderCompare_2;GausHitFinderCompare_3;GausHitFinderCompare_4")
 
-foreach(n RANGE 4)
-  add_test(
-    NAME GausHitFinderCompareWithUnfold_${n}
-    COMMAND diff -q -s
-    ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
-    ${CMAKE_CURRENT_BINARY_DIR}/hits_${n}.txt
-  )
-  set_tests_properties(GausHitFinderCompareWithUnfold_${n} PROPERTIES DEPENDS GausHitFinderTestWithUnfold )
-endforeach()
+# The reference files were generated on a Linux machine
+# so we expect identical output on Linux
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  foreach(n RANGE 4)
+    add_test(
+      NAME GausHitFinderCompareWithUnfold_${n}
+      COMMAND diff -q -s
+      ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
+      ${CMAKE_CURRENT_BINARY_DIR}/hits_${n}.txt
+     )
+    set_tests_properties(GausHitFinderCompareWithUnfold_${n} PROPERTIES DEPENDS GausHitFinderTestWithUnfold)
+  endforeach()
+# On a Mac, we expect the output to be slightly
+# different because the reference files were
+# generated on a Linux machine.
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  foreach(n RANGE 4)
+    add_test(
+      NAME GausHitFinderCompareWithUnfold_${n}
+      COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/compare_hits.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
+      ${CMAKE_CURRENT_BINARY_DIR}/hits_${n}.txt
+    )
+    set_tests_properties(GausHitFinderCompareWithUnfold_${n} PROPERTIES DEPENDS GausHitFinderTestWithUnfold)
+  endforeach()
+# Always fail on other platforms
+# This will warn us to add a new comparison
+# method if we ever run on a new platform.
+else()
+  foreach(n RANGE 4)
+    add_test(
+      NAME GausHitFinderCompareWithUnfold_${n}
+      COMMAND ${CMAKE_COMMAND} -E false
+    )
+    set_tests_properties(GausHitFinderCompareWithUnfold_${n} PROPERTIES DEPENDS GausHitFinderTestWithUnfold)
+  endforeach()
+endif()
 
 # We need to include the library directory for 'generate_layers' on the PHLEX_PLUGIN_PATH.
 # Unfortunately, phlex does not have a target that easily does this (plugins are not intended
