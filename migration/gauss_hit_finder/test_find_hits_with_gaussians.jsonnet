@@ -1,6 +1,6 @@
 {
   driver: {
-    cpp: 'examples_generate_layers_hof',
+    cpp: 'generate_layers',
     layers: {
       spill: { parent: 'job', total: 5, starting_number: 0 },
     },

@@ -15,9 +15,6 @@ add_library(find_hits_with_gaussians SHARED
 )
 target_link_libraries(find_hits_with_gaussians PRIVATE TBB::tbb fmt::fmt)
 
-add_library(examples_generate_layers_hof MODULE examples_generate_layers.cpp)
-target_link_libraries(examples_generate_layers_hof PRIVATE phlex::module layer_generator)
-
 # Register providers for data products
 add_library(wires_source MODULE wires_source.cpp)
 target_link_libraries(wires_source PRIVATE phlex::module find_hits_with_gaussians)
@@ -88,4 +85,6 @@ endforeach()
 set_tests_properties(
   GausHitFinderTest
   GausHitFinderTestWithUnfold
-  PROPERTIES ENVIRONMENT "PHLEX_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR}")
+  PROPERTIES ENVIRONMENT_MODIFICATION
+  PHLEX_PLUGIN_PATH=path_list_prepend:${CMAKE_CURRENT_BINARY_DIR}:${phlex_LIBRARY_DIR}
+  )
