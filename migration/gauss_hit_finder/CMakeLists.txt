@@ -82,6 +82,18 @@ foreach(n RANGE 4)
   set_tests_properties(GausHitFinderCompareWithUnfold_${n} PROPERTIES DEPENDS GausHitFinderTestWithUnfold )
 endforeach()
 
+# The 'generate_layers' plugin is required for the GausHitFinder*Test tests. This plugin
+# is available in the phlex library directory, which may be in the  build directory or
+# in the install directory.  The following code sets the PHLEX_PLUGIN_PATH environment
+# variable for the tests to include both the build and install library directories.
+if(NOT phlex_LIBRARY_DIR)
+  get_property(phlex_LIBRARY_DIR CACHE phlex_LIBRARY_DIR PROPERTY VALUE)
+endif()
+
+if(NOT phlex_LIBRARY_DIR)
+  message(FATAL_ERROR "phlex_LIBRARY_DIR is not set; cannot configure PHLEX_PLUGIN_PATH for tests")
+endif()
+
 set_tests_properties(
   GausHitFinderTest
   GausHitFinderTestWithUnfold
