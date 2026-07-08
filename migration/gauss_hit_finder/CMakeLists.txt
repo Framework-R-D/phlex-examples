@@ -82,21 +82,16 @@ foreach(n RANGE 4)
   set_tests_properties(GausHitFinderCompareWithUnfold_${n} PROPERTIES DEPENDS GausHitFinderTestWithUnfold )
 endforeach()
 
-# The 'generate_layers' plugin is required for the GausHitFinder*Test tests. This plugin
-# is available in the phlex library directory, which may be in the  build directory or
-# in the install directory.  The following code sets the PHLEX_PLUGIN_PATH environment
-# variable for the tests to include both the build and install library directories.
-if(NOT phlex_LIBRARY_DIR)
-  get_property(phlex_LIBRARY_DIR CACHE phlex_LIBRARY_DIR PROPERTY VALUE)
-endif()
-
-if(NOT phlex_LIBRARY_DIR)
-  message(FATAL_ERROR "phlex_LIBRARY_DIR is not set; cannot configure PHLEX_PLUGIN_PATH for tests")
-endif()
+# We need to include the library directory for 'generate_layers' on the PHLEX_PLUGIN_PATH.
+# Unfortunately, phlex does not have a target that easily does this (plugins are not intended
+# to be accessible downstream), so we have to work around that.  Right now, the library directory
+# for phlex::core is the same as the library directory for the plugins.  So we use the library
+# directory of phlex::core as a proxy for the plugin directory.
 
 set_tests_properties(
   GausHitFinderTest
   GausHitFinderTestWithUnfold
-  PROPERTIES ENVIRONMENT_MODIFICATION
-  PHLEX_PLUGIN_PATH=path_list_prepend:${CMAKE_CURRENT_BINARY_DIR}:${phlex_LIBRARY_DIR}
-  )
+  PROPERTIES
+    ENVIRONMENT_MODIFICATION
+      "PHLEX_PLUGIN_PATH=path_list_prepend:${CMAKE_CURRENT_BINARY_DIR}:$<TARGET_FILE_DIR:phlex::core>"
+)
