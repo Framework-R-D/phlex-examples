@@ -88,8 +88,6 @@ Processed layers:
 ```
 
 > [!NOTE]
-> For Phlex v0.1.0, Python data products:
-> - Cannot be written to output files
-> - Must belong to the `"job"` data layer
+> Python data products cannot be currently be written to output files.
 >
-> For Phlex v0.3.0, Python data products cannot be written to output files.
+> For Phlex v0.1.0, Python data products must belong to the `"job"` data layer.
