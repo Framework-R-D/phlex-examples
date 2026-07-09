@@ -16,9 +16,10 @@
     },
   },
   modules: {
-    find_hits_with_gaussians_cpp: {
-      cpp: 'find_hits_with_gaussians_hof',
-      layer: 'spill',
+    find_hits_with_gaussians_design1_cpp: {
+      cpp: 'find_hits_with_gaussians_design1_hof',
+      layer_unfold_input: 'spill',
+      layer_unfold_output: 'wire',
       // Copied in the configuration parameters that
       // I obtained from "Far Detector Simulation/Reconstruction conveners":
       // Dominic Brailsford and Laura Paulucci (in cc). See Dom and Kyle
@@ -63,8 +64,9 @@
     },
     print_hits_to_file_cpp: {
       cpp: 'print_hits_to_file_hof',
-      creator: 'find_hits_with_gaussians',
+      creator: 'fold_hits_into_vector_design1',
       layer: 'spill',
     },
+
   },
 }

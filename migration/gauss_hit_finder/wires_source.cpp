@@ -1,4 +1,3 @@
-#include <atomic>
 #include <exception>
 #include <string>
 #include <vector>
@@ -11,8 +10,6 @@
 #include "wire_serialization.hpp"
 
 using namespace phlex;
-
-static std::atomic<int> fileCounter{0};
 
 // This provider is for temporary testing purposes only. This
 // is NOT intended to be a long term solution for persistence.
@@ -27,8 +24,7 @@ PHLEX_REGISTER_PROVIDERS(m, config)
   auto const layer = config.get<std::string>("layer");
 
   m.provide("provide_wires", [](data_cell_index const& id) -> std::vector<recob::Wire> {
-    int current_value = fileCounter.fetch_add(1);
-    std::string filename = std::string("wires_") + std::to_string(current_value) + ".dat";
+    std::string filename = std::string("wires_") + std::to_string(id.number()) + ".dat";
 
 
     if (auto wires = read_wires_from_file(filename)) {

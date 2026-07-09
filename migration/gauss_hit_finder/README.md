@@ -1,8 +1,8 @@
 # Purpose of this directory
 
 This directory holds an example showing how to convert a
-module that works with the `art` framework into an
-algorithm that works with the `phlex` framework. This
+module that works with the `art` framework into
+algorithms that work with the `phlex` framework. This
 particular example converts the module defined in
 the file GausHitFinder_module.cc from the LArSoft larreco
 repository.
@@ -13,11 +13,13 @@ module used by DUNE or any other experiment
 for production or physics. That belongs in some other
 repository.
 
-This example is based on version v0.2.0 of `phlex`. It will need
-some minor modifications to work with the newest version of `phlex`.
-The migration to phlex started with version of GausHitFinder_module.cc
-in v10_05_00 of larreco which was the version in use with DUNE software
-at the time the migration work was started.
+This example is based on `main` branch of `phlex` as of the
+last time the example was updated. It might need modifications
+to work with the newest version of `phlex`. The migration to
+phlex started with version of GausHitFinder_module.cc in
+v10_05_00 of larreco which was the version in use with DUNE
+software at the time the migration work was started. If there
+is a request, I can update the example to a more recent version.
 
 # Work in Progress
 
@@ -39,14 +41,34 @@ issues and remove performance bottlenecks.
 
 ## Interesting files that are the heart of the example
 
+There are multiple prototypes to explore different
+approaches to migrating GausHitFinder to `phlex`.
+
+These files are an example where one large `phlex`
+algorithm replaces GausHitFinder.
+
 1. find_hits_with_gaussians.hpp
 2. find_hits_with_gaussians.cpp
 3. register_find_hits_with_gaussians.cpp
 4. test_find_hits_with_gaussians.jsonnet
 
+These files are an example where there is an
+unfold algorithm, followed by a transform algorithm,
+and finally a fold algorithm. The outer parallel_for
+iteration is replaced by that sequence of algorithms.
+
+1. find_hits_with_gaussians_design1.hpp
+2. find_hits_with_gaussians_design1.cpp
+3. register_find_hits_with_gaussians_design1.cpp
+4. test_find_hits_with_gaussians_design1.jsonnet
+
+We plan to implement more prototype migrations
+of GausHitFinder in the future to explore the
+possibilities and execute tests.
+
 ## These files exist only for test purposes
 
-There is one function that will print out reconstructed hits.
+There is one algorithm that will print out reconstructed hits.
 This printout can be used to compare results between an
 `art` process and a `phlex` process running GausHitFinder.
 There are functions that can be used to persistently store
@@ -54,13 +76,18 @@ the input from an `art` process (a vector of `Wire`) so
 it can be used in the `phlex` process. And there is a `phlex` provider
 to read this input. This persistence mechanism is necessary
 because there is not an alternative yet. These files are all
-temporary and not part of the example.
+temporary and not part of the migration example.
 
-1. print_hits.hpp
-2. print_hits.cpp
+1. print_hits_to_file.hpp
+2. print_hits_to_file.cpp
 3. wire_serialization.hpp
 4. wire_serialization.cpp
 5. wires_source.cpp
+6. register_print_hits_to_file.cpp
+7. art_hits_*.txt
+8. wires_*.dat
+9. register_find_hits_with_gaussians_cell_id.cpp
+10. examples_generate_layers.cpp
 
 ## Files copied from LArSoft
 
@@ -79,18 +106,18 @@ These files are in the subdirectory:
 
 # Where more work is needed
 
-At the moment, this is implemented as a single `phlex`
+The first example was implemented as a single `phlex`
 transform. Does it make sense to split it with unfolds
 and folds? Does it make sense to have multiple transforms?
 We don't know the answers to these questions yet.
-Getting the single transform to work is a good first step.
+Getting the single transform to work was a good first step.
 
-The next thing we plan to work on is creating a second version
-of the migrated module. We will try replacing the
+The next thing we implemented was replacing the
 outer `parallel_for` with an `unfold`, `transform`, and `fold`
-sequence of algorithms. After that we will create other versions
-pushing the division into separate algorithms to lower levels.
-Then we plan to run tests and compare the different versions.
+sequence of algorithms. In the future, we plan to create other
+versions pushing the division into separate algorithms to lower
+levels. Then we plan to run tests and compare the different
+versions.
 
 `Phlex` will not support the `Tools` feature that existed in
 `art`. One possibility is that algorithm nodes scheduled
@@ -195,6 +222,8 @@ Two output data members of `Hit` were ignored because they depend on the `Geomet
     geo::SigType_t fSignalType; ///< signal type for the plane of the hit
     geo::WireID fWireID;        ///< WireID for the hit (Cryostat, TPC, Plane, Wire)
 ```
+
+This was done for both `phlex` versions of GausHitFinder. The output of both are identical with each other and with the `art` version.
 
 The `phlex` process was run with multithreading and that causes the order of `Hit` objects to vary from one execution to the next and also the order of events to vary. In the comparison the `Hit` objects were sorted and we had to be careful to compare matching events.
 
