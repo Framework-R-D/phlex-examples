@@ -25,10 +25,10 @@ def compare_files(reference, test):
     pct = 100.0 * diff_count / total
 
     if pct >= 2.0:
-        print(f"FAIL: {diff_count}/{total} lines differ ({pct:.2f}%) — threshold is 2%")
+        print(f"FAIL: {diff_count}/{total} lines differ ({pct:.2g}%) — threshold is 2%")
         return False
 
-    print(f"PASS: {diff_count}/{total} lines differ ({pct:.2f}%) — within 2% threshold")
+    print(f"PASS: {diff_count}/{total} lines differ ({pct:.2g}%) — within 2% threshold")
     return True
 
 
