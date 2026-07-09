@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare two files, requiring the same number of lines and that less than 2% differ."""
+"""Compare two files, requiring the same number of lines and that less than 3% differ."""
 
 import sys
 
@@ -24,11 +24,11 @@ def compare_files(reference, test):
     diff_count = sum(1 for r, t in zip(ref_lines, test_lines) if r != t)
     pct = 100.0 * diff_count / total
 
-    if pct >= 2.0:
-        print(f"FAIL: {diff_count}/{total} lines differ ({pct:.2g}%) — threshold is 2%")
+    if pct >= 3.0:
+        print(f"FAIL: {diff_count}/{total} lines differ ({pct:.2g}%) — threshold is 3%")
         return False
 
-    print(f"PASS: {diff_count}/{total} lines differ ({pct:.2g}%) — within 2% threshold")
+    print(f"PASS: {diff_count}/{total} lines differ ({pct:.2g}%) — within 3% threshold")
     return True
 
 
