@@ -27,7 +27,13 @@ namespace examples {
       if (a.PeakTime() != b.PeakTime()) {
         return a.PeakTime() < b.PeakTime();
       }
-      return a.PeakAmplitude() < b.PeakAmplitude();
+      if (a.PeakAmplitude() != b.PeakAmplitude()) {
+        return a.PeakAmplitude() < b.PeakAmplitude();
+      }
+      if (a.StartTick() != b.StartTick()) {
+        return a.StartTick() < b.StartTick();
+      }
+      return a.EndTick() < b.EndTick();
     });
 
     std::string filename = std::string("hits_") +
