@@ -32,24 +32,20 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   auto const parent_layer = config.get<std::string>("parent_layer");
   auto const child_layer = config.get<std::string>("child_layer");
 
-  m.unfold<VectorSplitter>(
-     "split",
-     &VectorSplitter::predicate,
-     &VectorSplitter::unfold,
-     child_layer,
-     concurrency::unlimited)
-    .input_family(product_selector{
-      .creator = "input", .layer = parent_layer, .suffix = "numbers"})
+  m.unfold<VectorSplitter>("split",
+                           &VectorSplitter::predicate,
+                           &VectorSplitter::unfold,
+                           child_layer,
+                           concurrency::unlimited)
+    .input_family(product_selector{.creator = "input", .layer = parent_layer, .suffix = "numbers"})
     .output_product_suffixes("number");
 
   m.transform(
      "square", [](int n) { return n * n; }, concurrency::unlimited)
-    .input_family(
-      product_selector{.creator = "split", .layer = child_layer, .suffix = "number"})
+    .input_family(product_selector{.creator = "split", .layer = child_layer, .suffix = "number"})
     .output_product_suffixes("squared");
 
   m.observe(
      "verify", [](int sq) { assert(sq >= 0); }, concurrency::unlimited)
-    .input_family(
-      product_selector{.creator = "square", .layer = child_layer, .suffix = "squared"});
+    .input_family(product_selector{.creator = "square", .layer = child_layer, .suffix = "squared"});
 }

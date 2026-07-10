@@ -1,5 +1,5 @@
-#ifndef PHLEX_EXAMPLES_PRINT_HITS_HPP
-#define PHLEX_EXAMPLES_PRINT_HITS_HPP
+#ifndef MIGRATION_GAUSS_HIT_FINDER_PRINT_HITS_TO_FILE_HPP
+#define MIGRATION_GAUSS_HIT_FINDER_PRINT_HITS_TO_FILE_HPP
 
 #include <vector>
 
@@ -7,8 +7,7 @@
 
 namespace examples {
 
-  void print_hits_to_file(int cell_id,
-                          std::vector<recob::Hit> const& input_hits);
+  void print_hits_to_file(int cell_id, std::vector<recob::Hit> const& input_hits);
 }
 
-#endif // PHLEX_EXAMPLES_PRINT_HITS_HPP
+#endif // MIGRATION_GAUSS_HIT_FINDER_PRINT_HITS_TO_FILE_HPP

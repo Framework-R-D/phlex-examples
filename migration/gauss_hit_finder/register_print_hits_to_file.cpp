@@ -17,7 +17,6 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   auto const layer = config.get<std::string>("layer");
 
   m.observe("print_hits_to_file", examples::print_hits_to_file, concurrency::unlimited)
-    .input_family(
-      product_selector{.creator = "cell_info", .layer = layer},
-      product_selector{.creator = creator, .layer = layer});
+    .input_family(product_selector{.creator = "cell_info", .layer = layer},
+                  product_selector{.creator = creator, .layer = layer});
 }

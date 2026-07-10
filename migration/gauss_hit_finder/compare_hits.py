@@ -3,6 +3,7 @@
 
 import sys
 
+
 def compare_files(reference, test):
     # read the contents of both files into lists of lines
     # OK because the files are small, a few MB
@@ -12,8 +13,10 @@ def compare_files(reference, test):
         test_lines = f.readlines()
 
     if len(ref_lines) != len(test_lines):
-        print(f"FAIL: Line count differs: {reference} has {len(ref_lines)} lines, "
-              f"{test} has {len(test_lines)} lines")
+        print(
+            f"FAIL: Line count differs: {reference} has {len(ref_lines)} lines, "
+            f"{test} has {len(test_lines)} lines"
+        )
         return False
 
     total = len(ref_lines)

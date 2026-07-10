@@ -12,8 +12,8 @@
 #include "copied_from_larsoft_minor_edits/PeakFitterMrqdt.h"
 #include "copied_from_larsoft_minor_edits/Wire.h"
 
-#include "phlex/module.hpp"
 #include "find_hits_with_gaussians.hpp"
+#include "phlex/module.hpp"
 
 using namespace phlex;
 
@@ -31,8 +31,7 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
     .chi2_ndf = config.get<double>("chi2_ndf"),
     .pulse_height_cuts = config.get<std::vector<float>>("pulse_height_cuts"),
     .pulse_width_cuts = config.get<std::vector<float>>("pulse_width_cuts"),
-    .pulse_ratio_cuts = config.get<std::vector<float>>("pulse_ratio_cuts")
-  };
+    .pulse_ratio_cuts = config.get<std::vector<float>>("pulse_ratio_cuts")};
 
   std::vector<std::shared_ptr<examples::CandHitStandard>> cand_hit_standard_vec;
 
@@ -41,12 +40,12 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   for (auto const& key : finder_configs.keys()) {
     auto finder_config = finder_configs.get<configuration>(key);
     auto hit_finder = std::make_shared<examples::CandHitStandard>(
-        examples::CandHitStandardCfg{
-          .fRoiThreshold = finder_config.get<float>("roiThreshold")
-        });
+      examples::CandHitStandardCfg{.fRoiThreshold = finder_config.get<float>("roiThreshold")});
     unsigned int plane = finder_config.get<unsigned int>("Plane");
     if (plane >= cand_hit_standard_vec.size()) {
-      std::cerr << "Error: plane number " << plane << " is out of range for cand_hit_standard_vec of size " << cand_hit_standard_vec.size() << std::endl;
+      std::cerr << "Error: plane number " << plane
+                << " is out of range for cand_hit_standard_vec of size "
+                << cand_hit_standard_vec.size() << std::endl;
       throw std::runtime_error("Invalid plane number");
     }
     cand_hit_standard_vec[plane] = std::move(hit_finder);
@@ -55,35 +54,27 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   std::shared_ptr<examples::PeakFitterMrqdt> peak_fitter_mrqdt;
   auto fitter_config = config.get<configuration>("peak_fitter_mrqdt_config");
   peak_fitter_mrqdt = std::make_shared<examples::PeakFitterMrqdt>(
-      examples::PeakFitterMrqdtCfg{
-          .fMinWidth = fitter_config.get<double>("min_width"),
-          .fMaxWidthMult = fitter_config.get<double>("max_width_mult"),
-          .fPeakRange = fitter_config.get<double>("peak_range_fact"),
-          .fAmpRange = fitter_config.get<double>("peak_amp_range")
-  });
-
+    examples::PeakFitterMrqdtCfg{.fMinWidth = fitter_config.get<double>("min_width"),
+                                 .fMaxWidthMult = fitter_config.get<double>("max_width_mult"),
+                                 .fPeakRange = fitter_config.get<double>("peak_range_fact"),
+                                 .fAmpRange = fitter_config.get<double>("peak_amp_range")});
 
   std::shared_ptr<examples::HitFilterAlg> hit_filter_alg;
   auto filter_config = config.get<configuration>("hit_filter_alg_config");
-  hit_filter_alg = std::make_shared<examples::HitFilterAlg>(
-      examples::HitFilterAlgCfg{
-          .fMinPulseHeight = filter_config.get<std::vector<float>>("min_pulse_height"),
-          .fMinPulseSigma = filter_config.get<std::vector<float>>("min_pulse_sigma")
-  });
+  hit_filter_alg = std::make_shared<examples::HitFilterAlg>(examples::HitFilterAlgCfg{
+    .fMinPulseHeight = filter_config.get<std::vector<float>>("min_pulse_height"),
+    .fMinPulseSigma = filter_config.get<std::vector<float>>("min_pulse_sigma")});
 
-  m.transform("find_hits_with_gaussians",
-              [cfg = std::move(cfg),
-               cand_hit_standard_vec = std::move(cand_hit_standard_vec),
-               peak_fitter_mrqdt = std::move(peak_fitter_mrqdt),
-               hit_filter_alg = std::move(hit_filter_alg)]
-              (std::vector<recob::Wire> const& wires) {
-                 return examples::find_hits_with_gaussians(cfg,
-                                                           wires,
-                                                           cand_hit_standard_vec,
-                                                           *peak_fitter_mrqdt,
-                                                           *hit_filter_alg);
-             },
-              concurrency::unlimited)
+  m.transform(
+     "find_hits_with_gaussians",
+     [cfg = std::move(cfg),
+      cand_hit_standard_vec = std::move(cand_hit_standard_vec),
+      peak_fitter_mrqdt = std::move(peak_fitter_mrqdt),
+      hit_filter_alg = std::move(hit_filter_alg)](std::vector<recob::Wire> const& wires) {
+       return examples::find_hits_with_gaussians(
+         cfg, wires, cand_hit_standard_vec, *peak_fitter_mrqdt, *hit_filter_alg);
+     },
+     concurrency::unlimited)
     .input_family(product_selector{.creator = "wires", .layer = layer, .suffix = ""})
     .output_product_suffixes("hits");
 }
