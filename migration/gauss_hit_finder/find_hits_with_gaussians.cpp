@@ -14,30 +14,36 @@
 #include "tbb/concurrent_vector.h"
 #include "tbb/parallel_for.h"
 
-#include "find_hits_with_gaussians.hpp"
 #include "copied_from_larsoft_minor_edits/ICandidateHitFinder.h"
+#include "find_hits_with_gaussians.hpp"
 
 namespace {
 
   // This is an edited copy of the TMath::Gaus function from ROOT, since we
   // don't want to depend on ROOT in this example.
-  double Gaus(double x, double mean, double sigma, bool norm) {
-    if (sigma == 0) return 1.e30;
-    double arg = (x-mean)/sigma;
+  double Gaus(double x, double mean, double sigma, bool norm)
+  {
+    if (sigma == 0)
+      return 1.e30;
+    double arg = (x - mean) / sigma;
     // for |arg| > 39  result is zero in double precision
-    if (arg < -39.0 || arg > 39.0) return 0.0;
-    double res = std::exp(-0.5*arg*arg);
-    if (!norm) return res;
-    return res/(2.50662827463100024*sigma); //sqrt(2*Pi)=2.50662827463100024
+    if (arg < -39.0 || arg > 39.0)
+      return 0.0;
+    double res = std::exp(-0.5 * arg * arg);
+    if (!norm)
+      return res;
+    return res / (2.50662827463100024 * sigma); //sqrt(2*Pi)=2.50662827463100024
   }
 }
 
 namespace examples {
-  std::vector<recob::Hit> find_hits_with_gaussians(find_hits_with_gaussians_cfg const& cfg,
-                                                   std::vector<recob::Wire> const& wires,
-                                                   std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
-                                                   PeakFitterMrqdt const& peak_fitter_mrqdt,
-                                                   HitFilterAlg const& hit_filter_alg) {
+  std::vector<recob::Hit> find_hits_with_gaussians(
+    find_hits_with_gaussians_cfg const& cfg,
+    std::vector<recob::Wire> const& wires,
+    std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
+    PeakFitterMrqdt const& peak_fitter_mrqdt,
+    HitFilterAlg const& hit_filter_alg)
+  {
 
     std::cout << "Finding hits with Gaussians." << std::endl;
 
@@ -78,7 +84,7 @@ namespace examples {
           charge += peakAmp * Gaus(sigPos, peakMean, peakWidth, false);
         return charge;
       };
-      
+
     //##############################
     //### Looping over the wires ###
     //##############################
@@ -115,13 +121,13 @@ namespace examples {
         // #################################################
         // ### Set up to loop over ROI's for this wire   ###
         // #################################################
-        const recob::Wire::RegionsOfInterest_t& signalROI = wire->SignalROI();
+        recob::Wire::RegionsOfInterest_t const& signalROI = wire->SignalROI();
 
         tbb::parallel_for(
           static_cast<std::size_t>(0),
           signalROI.n_ranges(),
           [&](size_t rangeIter) {
-            const auto& range = signalROI.range(rangeIter);
+            auto const& range = signalROI.range(rangeIter);
             // ROI start time
             raw::TDCtick_t roiFirstBinTick = range.begin_index();
 
@@ -132,8 +138,7 @@ namespace examples {
             examples::ICandidateHitFinder::HitCandidateVec hitCandidateVec;
             examples::ICandidateHitFinder::MergeHitCandidateVec mergedCandidateHitVec;
 
-            cand_hit_standard.at(plane)->findHitCandidates(
-              range, 0, channel, hitCandidateVec);
+            cand_hit_standard.at(plane)->findHitCandidates(range, 0, channel, hitCandidateVec);
             cand_hit_standard.at(plane)->MergeHitCandidates(
               range, hitCandidateVec, mergedCandidateHitVec);
 
@@ -148,7 +153,8 @@ namespace examples {
               // ### Putting in a protection in case things went wrong ###
               // ### In the end, this primarily catches the case where ###
               // ### a fake pulse is at the start of the ROI           ###
-              if (endT - startT < 5) continue;
+              if (endT - startT < 5)
+                continue;
 
               // #######################################################
               // ### Clearing the parameter vector for the new Pulse ###
@@ -187,7 +193,8 @@ namespace examples {
               // ###   depend on the fhicl parameter fLongPulseWidth ###
               // ### Also do this if chi^2 is too large              ###
               // #######################################################
-              if (mergedCands.size() > cfg.max_multi_hit || nGausForFit * chi2PerNDF > cfg.chi2_ndf) {
+              if (mergedCands.size() > cfg.max_multi_hit ||
+                  nGausForFit * chi2PerNDF > cfg.chi2_ndf) {
                 int longPulseWidth = cfg.long_pulse_width_vec.at(plane);
                 int nHitsThisPulse = (endT - startT) / longPulseWidth;
 
@@ -196,7 +203,8 @@ namespace examples {
                   longPulseWidth = (endT - startT) / nHitsThisPulse;
                 }
 
-                if (nHitsThisPulse * longPulseWidth < endT - startT) nHitsThisPulse++;
+                if (nHitsThisPulse * longPulseWidth < endT - startT)
+                  nHitsThisPulse++;
 
                 int firstTick = startT;
                 int lastTick = std::min(firstTick + longPulseWidth, endT);
@@ -248,7 +256,7 @@ namespace examples {
               float nsigmaADC(2.0);
               float newright(0);
               float newleft(0);
-              for (const auto& peakParams : peakParamsVec) {
+              for (auto const& peakParams : peakParamsVec) {
                 // Extract values for this hit
                 float peakAmp = peakParams.peakAmplitude;
                 float peakMean = peakParams.peakCenter;
@@ -292,8 +300,8 @@ namespace examples {
                 float charge =
                   chargeFunc(peakMean, peakAmp, peakWidth, cfg.area_norms_vec[plane], startT, endT);
                 ;
-                float chargeErr =
-                  std::sqrt(std::numbers::pi) * (peakAmpErr * peakWidthErr + peakWidthErr * peakAmpErr);
+                float chargeErr = std::sqrt(std::numbers::pi) *
+                                  (peakAmpErr * peakWidthErr + peakWidthErr * peakAmpErr);
 
                 // ### limits for getting sums
                 std::vector<float>::const_iterator sumStartItr = range.begin() + startT;
@@ -326,46 +334,52 @@ namespace examples {
                 }
 
                 //protection to avoid negative ranges
-                if (newright - newleft < 0) continue;
+                if (newright - newleft < 0)
+                  continue;
 
                 //avoid ranges out of ROI if it happens
-                if (HitsumStartItr < sumStartItr) HitsumStartItr = sumStartItr;
+                if (HitsumStartItr < sumStartItr)
+                  HitsumStartItr = sumStartItr;
 
-                if (HitsumEndItr > sumEndItr) HitsumEndItr = sumEndItr;
+                if (HitsumEndItr > sumEndItr)
+                  HitsumEndItr = sumEndItr;
 
-                if (HitsumStartItr > HitsumEndItr) continue;
+                if (HitsumStartItr > HitsumEndItr)
+                  continue;
 
                 // ### Sum of ADC counts
                 double ROIsumADC = std::accumulate(sumStartItr, sumEndItr, 0.);
                 double HitsumADC = std::accumulate(HitsumStartItr, HitsumEndItr, 0.);
 
-                recob::Hit hit(wire->Channel(),
-                               startT + roiFirstBinTick,
-                               endT + roiFirstBinTick,
-                               peakMean + roiFirstBinTick,
-                               peakMeanErr,
-                               peakWidth,
-                               peakAmp,
-                               peakAmpErr,
-                               ROIsumADC,
-                               HitsumADC,
-                               charge,
-                               chargeErr,
-                               nGausForFit,
-                               numHits,
-                               chi2PerNDF,
-                               NDF,
-                               wire->View(),
-                               // Geometry system for Phlex is not yet implemented,
-                               // so we just set signal type to 0 (kInduction) for now.
-                               geo::kInduction,
-                               // art::ServiceHandle<geo::WireReadout const>()->Get().SignalType(wire.Channel()),
-                               // wid also comes from the Geometry, which is not yet implemented, so we just set
-                               // it to a default value for now.
-                               geo::WireID());
-                               // wid);
+                recob::Hit hit(
+                  wire->Channel(),
+                  startT + roiFirstBinTick,
+                  endT + roiFirstBinTick,
+                  peakMean + roiFirstBinTick,
+                  peakMeanErr,
+                  peakWidth,
+                  peakAmp,
+                  peakAmpErr,
+                  ROIsumADC,
+                  HitsumADC,
+                  charge,
+                  chargeErr,
+                  nGausForFit,
+                  numHits,
+                  chi2PerNDF,
+                  NDF,
+                  wire->View(),
+                  // Geometry system for Phlex is not yet implemented,
+                  // so we just set signal type to 0 (kInduction) for now.
+                  geo::kInduction,
+                  // art::ServiceHandle<geo::WireReadout const>()->Get().SignalType(wire.Channel()),
+                  // wid also comes from the Geometry, which is not yet implemented, so we just set
+                  // it to a default value for now.
+                  geo::WireID());
+                // wid);
 
-                if (cfg.filter_hits) filteredHitVec.push_back(hit);
+                if (cfg.filter_hits)
+                  filteredHitVec.push_back(hit);
 
                 // This loop will store ALL hits
                 hitstruct tmp{std::move(hit)};
@@ -388,7 +402,7 @@ namespace examples {
                 // is in descending order of peak height, not ascending.)
                 std::sort(filteredHitVec.begin(),
                           filteredHitVec.end(),
-                          [](const auto& left, const auto& right) {
+                          [](auto const& left, auto const& right) {
                             return left.PeakAmplitude() > right.PeakAmplitude();
                           });
 
@@ -408,7 +422,7 @@ namespace examples {
                   std::vector<recob::Hit>::iterator smallHitItr =
                     std::find_if(filteredHitVec.begin(),
                                  filteredHitVec.end(),
-                                 [largestPH, threshold](const auto& hit) {
+                                 [largestPH, threshold](auto const& hit) {
                                    return hit.PeakAmplitude() < 8. &&
                                           hit.PeakAmplitude() / largestPH < threshold;
                                  });
@@ -420,13 +434,13 @@ namespace examples {
                   // Resort in time order
                   std::sort(filteredHitVec.begin(),
                             filteredHitVec.end(),
-                            [](const auto& left, const auto& right) {
+                            [](auto const& left, auto const& right) {
                               return left.PeakTime() < right.PeakTime();
                             });
                 }
 
                 // Copy the hits we want to keep to the filtered hit collection
-                for (const auto& filteredHit : filteredHitVec) {
+                for (auto const& filteredHit : filteredHitVec) {
                   if (!cfg.filter_hits || hit_filter_alg.IsGoodHit(filteredHit)) {
                     hitstruct tmp{std::move(filteredHit)};
                     filthitstruct_vec.push_back(std::move(tmp));
@@ -434,10 +448,10 @@ namespace examples {
                 }
               }
             } //<---End loop over merged candidate hits
-          }   //<---End looping over ROI's
-        );    //end tbb parallel for
-      }       //<---End looping over all the wires
-    );        //end tbb parallel for
+          } //<---End looping over ROI's
+        ); //end tbb parallel for
+      } //<---End looping over all the wires
+    ); //end tbb parallel for
 
     std::vector<recob::Hit> hits;
 

@@ -11,12 +11,14 @@ git clone -b phlex-v0.3 https://github.com/Framework-R-D/phlex-examples.git
 ```
 
 Now create a build directory:
+
 ```console
 mkdir build-phlex-examples
 cd build-phlex-examples
 ```
 
-The repository can now be easily built by activating [the environment you created when installing Phlex](https://github.com/Framework-R-D/phlex/blob/main/INSTALLATION.md#creating-and-installing-the-phlex-environment):
+The repository can now be easily built by activating
+[the environment you created when installing Phlex](https://github.com/Framework-R-D/phlex/blob/main/INSTALLATION.md#creating-and-installing-the-phlex-environment):
 
 ```console
 spack env activate my-phlex-environment
@@ -94,7 +96,8 @@ Processed layers:
 
 ### Job with Python algorithms
 
-To run a job that uses a Python algorithm, the `PYTHONPATH` environment variable must be adjusted to include the directory with the Python module:
+To run a job that uses a Python algorithm, the `PYTHONPATH` environment
+variable must be adjusted to include the directory with the Python module:
 
 ```console
 export PYTHONPATH=$(realpath ../phlex-examples):${PYTHONPATH}
@@ -117,6 +120,7 @@ Processed layers:
 
 > [!NOTE]
 > For Phlex v0.1.0, Python data products:
+>
 > - Cannot be written to output files
 > - Must belong to the `"job"` data layer
 >

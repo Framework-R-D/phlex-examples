@@ -34,7 +34,7 @@
       area_method: 0,
       area_norms_vec: [13.25, 13.25, 13.25],
       chi2_ndf: 50.0,
-      pulse_height_cuts: [3.0,  3.0,  3.0],
+      pulse_height_cuts: [3.0, 3.0, 3.0],
       pulse_width_cuts: [2.0, 1.5, 1.0],
       pulse_ratio_cuts: [0.35, 0.40, 0.20],
       cand_hit_standard_configs: {

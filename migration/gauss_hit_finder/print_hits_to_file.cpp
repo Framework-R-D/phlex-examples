@@ -13,8 +13,8 @@
 
 namespace examples {
 
-  void print_hits_to_file(int cell_id,
-                          std::vector<recob::Hit> const& input_hits) {
+  void print_hits_to_file(int cell_id, std::vector<recob::Hit> const& input_hits)
+  {
 
     std::vector<recob::Hit> hits = input_hits;
 
@@ -23,7 +23,7 @@ namespace examples {
     // the output from the art version of GausHitFinder. The parallel_for
     // loops and unfold-transform-fold execution map both scramble the
     // order and make comparisons difficult.
-    std::sort(hits.begin(), hits.end(), [](const recob::Hit& a, const recob::Hit& b) {
+    std::sort(hits.begin(), hits.end(), [](recob::Hit const& a, recob::Hit const& b) {
       if (a.PeakTime() != b.PeakTime()) {
         return a.PeakTime() < b.PeakTime();
       }
@@ -36,8 +36,7 @@ namespace examples {
       return a.EndTick() < b.EndTick();
     });
 
-    std::string filename = std::string("hits_") +
-                           std::to_string(cell_id) + ".txt";
+    std::string filename = std::string("hits_") + std::to_string(cell_id) + ".txt";
 
     auto file = fmt::output_file(filename);
     file.print("Contents of a std::vector<recob::Hit>\n\n");

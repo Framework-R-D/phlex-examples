@@ -13,4 +13,3 @@ algorithms.
    :numbered:
 
    introduction
-   

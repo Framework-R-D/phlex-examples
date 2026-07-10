@@ -1,5 +1,5 @@
-#ifndef PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_HPP
-#define PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_HPP
+#ifndef MIGRATION_GAUSS_HIT_FINDER_FIND_HITS_WITH_GAUSSIANS_HPP
+#define MIGRATION_GAUSS_HIT_FINDER_FIND_HITS_WITH_GAUSSIANS_HPP
 
 // See REAMDME.md for some general comments about this example.
 
@@ -36,7 +36,6 @@
 #include "copied_from_larsoft_minor_edits/PeakFitterMrqdt.h"
 #include "copied_from_larsoft_minor_edits/Wire.h"
 
-
 namespace examples {
 
   struct find_hits_with_gaussians_cfg {
@@ -44,22 +43,22 @@ namespace examples {
 
     std::vector<int> long_max_hits_vec;    ///<Maximum number hits on a really long pulse train
     std::vector<int> long_pulse_width_vec; ///<Sets width of hits used to describe long pulses
-    int max_multi_hit; ///<maximum hits for multi fit
-    int area_method;     ///<Type of area calculation
-    std::vector<double>
-      area_norms_vec;       ///<factors for converting area to same units as peak height
-    double chi2_ndf; ///maximum Chisquared / NDF allowed for a hit to be saved
+    int max_multi_hit;                     ///<maximum hits for multi fit
+    int area_method;                       ///<Type of area calculation
+    std::vector<double> area_norms_vec; ///<factors for converting area to same units as peak height
+    double chi2_ndf;                    ///maximum Chisquared / NDF allowed for a hit to be saved
 
     std::vector<float> pulse_height_cuts;
     std::vector<float> pulse_width_cuts;
     std::vector<float> pulse_ratio_cuts;
   };
 
-  std::vector<recob::Hit> find_hits_with_gaussians(find_hits_with_gaussians_cfg const& cfg,
-                                                   std::vector<recob::Wire> const& wires,
-                                                   std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
-                                                   PeakFitterMrqdt const& peak_fitter_mrqdt,
-                                                   HitFilterAlg const& hit_filter_alg);
+  std::vector<recob::Hit> find_hits_with_gaussians(
+    find_hits_with_gaussians_cfg const& cfg,
+    std::vector<recob::Wire> const& wires,
+    std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
+    PeakFitterMrqdt const& peak_fitter_mrqdt,
+    HitFilterAlg const& hit_filter_alg);
 
 }
-#endif // PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_HPP
+#endif // MIGRATION_GAUSS_HIT_FINDER_FIND_HITS_WITH_GAUSSIANS_HPP
