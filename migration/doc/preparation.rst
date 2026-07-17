@@ -1,21 +1,26 @@
-Preparation
-===========
+Framework and Domain Logic Separation
+=====================================
 
-The objective of the preparation step is to remove, reduce, or isolate *art* concepts that would otherwise leak deep into algorithm code and make later migration more complicated than necessary.
+The objective of the framework and domain logic separation step is to remove, reduce, or isolate *art* concepts that would otherwise leak deep into algorithm code and make later migration more complicated than necessary.
 This is not yet the point where a module is rewritten in *Phlex* terms.
 
-In many code bases, *art* concepts appear not only at the framework boundary but also deep inside algorithm code.
+In many code bases, *art* concepts appear deep inside algorithm code.
 That is usually the result of incremental history rather than a true requirement.
-The first task is therefore to identify which framework constructs are essential, which are merely convenient, and which can be confined to a narrow boundary during a staged migration.
+The first task is therefore to identify which framework constructs are essential, and which are merely convenient.
+
+In this guide, the framework boundary is the code that directly interacts with
+the framework, such as configuration lookup, input retrieval, service access,
+and output publication.
+
 
 For each *art* concept that appears in a code base:
 
-1. determine whether the concept is essential to persisted framework behavior,
+1. determine whether the concept is required to preserve the module's framework-visible output and identity, or whether it is only an implementation convenience,
 2. remove it where it is only being used for convenience,
-3. isolate it at the framework boundary where it is still required, and
-4. convert the algorithmic core to ordinary C++ inputs and outputs.
+3. isolate it in framework-boundary code where it is still required, and
+4. convert the algorithm code to ordinary C++ inputs and outputs.
 
-Preparation is successful when:
+Framework and domain logic separation is successful when:
 
 * framework-specific access patterns are pushed toward the top-level boundary,
 * hidden dependencies become explicit,
@@ -25,9 +30,20 @@ Preparation is successful when:
 * algorithm code can start to look like ordinary C++.
 
 
-The goal of preparation is not to remove every *art* type immediately.
-The goal is to decide which framework concepts represent persisted behavior that must be preserved and which ones are only convenience mechanisms that should be reduced to ordinary C++ before migration.
-The sections below group the main preparation work into a small number of useful categories.
+The goal of this separation work is not to remove every *art* type immediately.
+The goal is to decide which framework concepts are required to preserve the module's framework-visible output and identity and which ones are only convenience mechanisms that should be reduced to ordinary C++ before migration.
+The sections below group the main separation work into a small number of useful categories.
+
+Cross-Cutting Rules
+-------------------
+
+A few separation rules apply across all *art* concepts:
+
+* keep framework retrieval and framework-owned identity at the module boundary,
+* do not cache event-scoped objects across events,
+* prefer explicit inputs over implicit framework access,
+* prefer ordinary C++ containers and references in helper code, and
+* preserve *art*-specific types only where persisted behavior requires them.
 
 ``art::Ptr`` and Pointer-Like Access
 ------------------------------------
@@ -36,12 +52,12 @@ The sections below group the main preparation work into a small number of useful
 That is sometimes required, especially when a module writes products whose meaning depends on persisted cross-product identity.
 In many code paths, however, ``art::Ptr`` is only being used as a convenient way to refer to an object that is already present in a collection.
 
-For preparation purposes, the key distinction is whether the code really needs framework identity.
+For this separation step, the key distinction is whether the code really needs framework identity.
 If the code only needs read-only object access, stable ordering within one collection, a simple relationship represented by an index or key, or temporary navigation during one computation, ``art::Ptr`` can usually be removed.
 As a practical rule, a module typically needs ``art::Ptr`` only when it places an ``art::Ptr``-based product into the event, for example ``art::Assns``, ``art::PtrVector``, ``art::PtrMaker``-produced pointers, or a ``std::vector<art::Ptr<T>>`` written to the event.
 If provenance or persisted identity is genuinely required, or if association chaining depends on ``art::Ptr<T>::key()``, then ``art::Ptr`` may need to remain at the framework boundary during an intermediate migration step.
 
-The preparation work is therefore to inventory ``art::Ptr`` and ``fill_ptr_vector`` usage, separate persisted-identity cases from convenience usage, and replace the convenience cases with ordinary data access.
+The separation work is therefore to inventory ``art::Ptr`` and ``fill_ptr_vector`` usage, separate persisted-identity cases from convenience usage, and replace the convenience cases with ordinary data access.
 In helper code that usually means passing object values, references, indices, a ``std::vector<T> const&``, a ``std::vector<T const*> const&``, or a lookup table built at the boundary.
 Any unavoidable ``art::Ptr`` usage should stay near framework I/O, and the remaining identity-sensitive cases should be recorded as explicit migration-design items.
 
@@ -114,7 +130,7 @@ When ``art::Ptr`` usage disappears, related includes often disappear as well, in
 AI tools are useful here because many ``art::Ptr`` uses are repetitive and can be classified mechanically.
 They can inventory ``art::Ptr`` and ``fill_ptr_vector`` usage, classify each case as persisted-output, association-chaining, or convenience, propose local rewrites to references or raw pointers, identify stale includes, and flag helper signatures that still expose framework pointer types.
 Review those changes carefully when a module writes associations or other pointer-based products, when ``FindManyP`` may still be required for chaining, when the code depends on ``.key()`` or provenance semantics, or when a helper stores pointers beyond local event scope.
-:ref:`Appendix A <art-ptr-removal>` is a self-contained AI memory file covering this task: it contains a candidate-finding script, all replacement patterns, decision rules, and a completed example, and is designed to be provided directly to an AI tool as reusable context when performing this preparation work.
+:ref:`Appendix A <art-ptr-removal>` is a self-contained AI memory file covering this task: it contains a candidate-finding script, all replacement patterns, decision rules, and a completed example, and is designed to be provided directly to an AI tool as reusable context when performing this separation work.
 
 Data Product Retrieval and Event-Boundary Access
 ------------------------------------------------
@@ -122,7 +138,7 @@ Data Product Retrieval and Event-Boundary Access
 *art* naturally encourages product retrieval inside module callbacks, but that convenience often hides the real inputs to the algorithm.
 When helper code pulls products directly from the event, its dependencies become implicit and the code is harder to test, reuse, or map into *Phlex* dataflow declarations.
 
-The useful preparation rule is simple: move retrieval to the top-level framework boundary and convert retrieved products into explicit function parameters.
+The useful separation rule is simple: move retrieval to the top-level framework boundary and convert retrieved products into explicit function parameters.
 Identify every call path that reaches into the event, list the actual products the algorithm requires, remove event access from helper classes unless they are intentionally part of the framework layer, and keep ``art::Handle`` objects local to the event callback.
 ``art::Handle`` objects do not outlive the event and must never be stored as module data members.
 More generally, event-scoped products, pointers, references, and derived data should not be cached across events.
@@ -138,7 +154,7 @@ Review those changes carefully when optional products are part of the intended b
 
 The two-argument ``getByLabel`` is the most common legacy retrieval pattern in *larreco* modules.
 It appears in nearly every module that reads event products, including ``GausHitFinder_module.cc``, ``FFTHitFinder_module.cc``, and ``ClusterCheater_module.cc``.
-The preparation step is to replace it with the appropriate modern alternative.
+The separation step is to replace it with the appropriate modern alternative.
 
 When only the product is needed and a handle is not required downstream, replace ``getByLabel`` with ``getProduct``:
 
@@ -193,7 +209,7 @@ When ``getByLabel`` is combined with ``fill_ptr_vector``, as in ``ClusterCheater
    art::fill_ptr_vector(hits, hitcol);
 
 When a helper class or tool receives the event object and calls retrieval APIs internally, retrieval should instead be performed at the module boundary and the product passed in explicitly.
-``TrackProducerFromTrack_module.cc`` in ``larreco/TrackFinder/`` illustrates the boundary shape after this preparation: retrieval is done in ``produce()`` with ``getValidHandle`` before any helper is invoked, and helpers receive the retrieved data rather than reaching into the event themselves:
+``TrackProducerFromTrack_module.cc`` in ``larreco/TrackFinder/`` illustrates the boundary shape after this separation work: retrieval is done in ``produce()`` with ``getValidHandle`` before any helper is invoked, and helpers receive the retrieved data rather than reaching into the event themselves:
 
 .. code-block:: cpp
 
@@ -219,75 +235,54 @@ When a helper class or tool receives the event object and calls retrieval APIs i
 Associations and Navigation
 --------------------------------
 
-Associations encode relationships among products, but in existing code they are often also used as a convenient navigation mechanism.
-Preparation is the point where those two roles need to be separated.
-If they are not, framework-era navigation patterns leak into code that should instead operate on explicit relationships in ordinary C++ data.
-
-The main preparation task is to identify associations used only to traverse from one product to another and decide whether the relationship is truly part of the domain model or only a retrieval pattern.
-For domain relationships, define an explicit representation that the algorithm can understand directly.
-For retrieval-only usage, keep the association handling at the framework boundary and pass simpler structures inward.
-Association-aware logic should be preserved only where persisted identity is part of the intended behavior.
+In the current *Phlex* design, the associations concept is still under development.
 
 Associations may still remain temporarily at the framework boundary during a staged migration, especially when current module output is still defined in terms of ``art::Assns``.
-Even then, the preparation goal is to keep that representation out of reusable algorithm code wherever possible.
+Even then, the separation goal is to keep that representation out of reusable algorithm code wherever possible.
 AI tools can help inventory helpers such as ``FindOneP``, ``FindManyP``, and ``art::Assns`` construction and distinguish navigation-only use from persisted-output use.
 Review those changes carefully when the code builds new associations or when helper logic depends on stable framework identity rather than simple object access.
 
-Services, Plugins, and Other Hidden Dependencies
+*art* Services
 ------------------------------------------------
 
-Service access and framework-managed plugins both make it easy to obtain shared objects or runtime-selected behavior, but they also tend to hide what the code actually depends on.
-A service may really be acting as configuration, geometry access, a utility object, a cache, or a true framework-owned service.
-Likewise, helper logic may be packaged as a plugin because of project history rather than because runtime extensibility is still needed.
-
-The useful preparation step is to inventory those dependencies and classify what the code is really obtaining.
-Convert non-framework concerns into explicit parameters, constructor arguments, or ordinary helper objects where possible.
-Identify which plugin boundaries are truly required for runtime extensibility, convert purely local helper logic into ordinary classes or functions, move configuration parsing out of helper logic where practical, and leave only genuinely framework-owned interactions at the boundary.
-Any remaining service or plugin dependencies that block full migration should be documented explicitly.
-
-AI tools can trace service calls across helper classes, suggest constructor or function parameters that make those dependencies explicit, and identify helpers that are framework-discovered only because of historical structure.
-Review those changes carefully when a service imposes ordering, thread-safety, or lifecycle constraints that are not obvious from the immediate call site, or when a plugin boundary is part of the package's public extension mechanism and therefore needs to remain stable during migration.
-
-*art* Services
-~~~~~~~~~~~~~~
+*Phlex* does not have a concept of services.
 
 An *art* service is a globally accessible stateful object with a specific lifecycle: it is constructed before the first module and destroyed after the last.
 Services can register callbacks for framework transitions that are not accessible to modules, depend on other services through ``art::ServiceHandle``, and be polymorphic.
 That broad capability makes them convenient, but also makes them a frequent source of hidden dependencies that complicate migration.
 
-Before treating a service dependency as unavoidable, it is worth asking what the code is actually obtaining from the service and whether a simpler alternative suffices.
+For migration work, the main question is usually not how to write a new service.
+It is how to take existing module or helper code that currently reaches into a service and reshape that code so the algorithm can later be wired by *Phlex*.
+The key rule for this preparation step is simple: ``art::ServiceHandle`` belongs at the framework boundary, not inside reusable algorithm code.
 
-Alternatives to services
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Guidance for Existing Code Using Services
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many common reasons for reaching for a service do not require one.
-The following patterns are expected to be provided without a service mechanism in *Phlex*:
+When preparing existing code, start by inventorying every place that constructs a ``ServiceHandle`` or otherwise depends on a service-provided object.
+For each use, identify what the downstream code actually needs:
 
-* **Message logging.** Standard logging libraries (e.g., ``spdlog``, ``std::cerr``) are ordinary C++ and need no framework wrapper.
-* **Profiling and monitoring.** Facilities such as ``TimeTracker`` and ``MemoryTracker`` are infrastructure concerns that can be provided by the framework runtime without exposing a service handle to user code.
-* **Global-state wrappers.** Objects like ``TFileService`` exist to manage global state in external libraries (e.g., ROOT).
-  That global state is a real need, but the management object does not need to be obtained through ``art::ServiceHandle``; it can be provided as a constructor argument or explicit parameter.
-* **Singleton-like shared objects (e.g., Geometry).** Objects that are read-only after initialization and shared across algorithms are not fundamentally services.
-  In *Phlex*, such objects are data products belonging to a long-lived data family (e.g., a job-level or run-level family) and are provided to algorithms through the normal data-flow mechanism, not through a globally accessible handle.
-* **Conditions-style and database-derived data.** Calibration offsets, channel maps, and other data that vary by run or time interval but are independent of individual events are exactly what framework-managed data families are for.
-  Rather than wrapping a database client in a service and calling it from algorithm code, the data should be fetched by a dedicated algorithm and placed into the appropriate data family so that downstream algorithms receive it as an explicit input.
+* a read-only value or data structure,
+* a helper object that can be passed in explicitly,
+* a side effect such as logging or output production, or
+* a true framework-lifecycle feature that cannot yet be represented another way.
 
-When one of these patterns is in use, the preparation task is to remove the ``art::ServiceHandle`` call from algorithm code entirely and replace it with an explicit parameter, constructor argument, or ordinary helper object.
+That classification determines the migration step.
+In most cases, the code should be changed so that the module retrieves the service-provided data or object once at the boundary and then passes ordinary C++ inputs into the algorithm.
 
-Cases where a service dependency may remain
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+As a practical guide for existing code:
 
-Some service uses are harder to eliminate before a full migration and may remain at the framework boundary during a staged preparation:
+* remove ``art::ServiceHandle`` construction from algorithms, helpers, and utility classes,
+* retrieve the needed value or object in the module callback or another framework-boundary object,
+* replace hidden service access with explicit function parameters or constructor arguments,
+* treat read-only shared state such as geometry, calibration constants, and channel maps as future long-lived data inputs rather than permanent global handles,
+* keep unavoidable service interaction localized to framework-boundary code, and
+* record any remaining lifecycle-driven service dependencies as explicit migration-design items.
 
-* The service genuinely needs the *art* lifecycle — for example, it registers callbacks for run, subrun, or job transitions that are not accessible to a plain module.
-* The service is part of a stable public extension interface that other packages depend on and that cannot be changed independently.
-* The service enforces singleton or ordering constraints that are a real framework requirement, not merely a convenience.
-
-Even in these cases the preparation goal is the same: keep the service call confined to the module boundary and prevent it from reaching into algorithm code.
-The algorithm should receive whatever data or object the service provides as an ordinary C++ argument, not by constructing a ``ServiceHandle`` internally.
+This rewrite makes the dependency graph visible in ordinary C++ terms.
+That is the important preparation step for *Phlex*: once the algorithm accepts explicit inputs, the later migration is primarily a matter of declaring where those inputs come from.
 
 Preparing the boundary: separating framework and algorithm code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The most common problematic pattern is an algorithm that constructs a ``ServiceHandle`` inside its own body:
 
@@ -310,7 +305,7 @@ The most common problematic pattern is an algorithm that constructs a ``ServiceH
 
 This couples the algorithm directly to the framework, hides the calibration data as an implicit dependency, makes provenance incomplete, and makes thread-safety unclear because ``ServiceHandle`` access patterns vary by service.
 
-The preparation fix is to retrieve the service data at the module boundary and pass it to the algorithm as an explicit argument:
+The separation fix is to retrieve the service data at the module boundary and pass it to the algorithm as an explicit argument:
 
 .. code-block:: cpp
 
@@ -331,7 +326,7 @@ The preparation fix is to retrieve the service data at the module boundary and p
 
 After this change the algorithm is framework-independent, its dependency on the calibration offset is explicit, and thread-safety is straightforward to reason about because the algorithm itself holds no framework state.
 
-This is the intended preparation shape even when the *art* service cannot yet be removed.
+This is the intended separation shape even when the *art* service cannot yet be removed.
 Once the codebase uses *Phlex*, the same algorithm function requires no change at all; the framework registration simply declares where the offset comes from:
 
 .. code-block:: cpp
@@ -350,56 +345,51 @@ Once the codebase uses *Phlex*, the same algorithm function requires no change a
    }
 
 The algorithm is the same function in both the prepared *art* code and the final *Phlex* registration.
-That continuity is the practical payoff of isolating service access at the module boundary during preparation.
+That continuity is the practical payoff of isolating service access at the module boundary during separation.
 
-When completing this preparation work, check that:
+When completing this separation work for existing code, check that:
 
 * ``art::ServiceHandle`` does not appear inside any function or class that is not itself a module or framework-boundary object,
 * every value extracted from a service is passed as an explicit parameter or constructor argument to downstream code,
 * helpers that previously received an event or service handle now accept the extracted value directly, and
 * any service dependencies that genuinely cannot be removed are recorded as explicit migration-design items.
 
-Mutable Module State
----------------------
+Guidance for New Service Writers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Long-lived module state often grows around the event-loop style of *art* modules.
-Over time, that state may mix configuration, scratch space, monitoring, counters, cached products, and per-event data.
-A common migration barrier is state whose lifetime is broader than the computation that actually needs it, because that makes the true inputs and outputs of the algorithm harder to see.
+The migration guidance above is for code that already uses services.
+If instead you are considering introducing a new service, first ask whether the capability really needs to be modeled as one.
 
-Preparation starts by classifying state as immutable configuration, per-event input, temporary scratch storage, accumulated reporting or monitoring, or a true long-lived cache.
-Immutable configuration should move into a plain configuration object.
-Per-event data should stay out of long-lived module members.
-Scratch storage should be localized to the computation that needs it.
-Any remaining state that affects thread safety, determinism, or lifecycle should be documented explicitly.
+Alternatives to services
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-AI tools can help scan module members and helper classes for cached handles, per-event products, and mutable state that should become local variables or explicit parameters.
-Review those changes carefully when long-lived caches are intentional, since those cases may encode performance or lifecycle assumptions that are not visible from a single source file.
+Many common reasons for reaching for a service do not require one.
+The following patterns are expected to be provided without a service mechanism in *Phlex*:
 
-Cross-Cutting Rules
--------------------
+* **Message logging.** Standard logging libraries (e.g., ``spdlog``, ``std::cerr``) are ordinary C++ and need no framework wrapper.
+* **Profiling and monitoring.** Facilities such as ``TimeTracker`` and ``MemoryTracker`` are infrastructure concerns that can be provided by the framework runtime without exposing a service handle to user code.
+* **Global-state wrappers.** Objects like ``TFileService`` exist to manage global state in external libraries (e.g., ROOT).
+  That global state is a real need, but the management object does not need to be obtained through ``art::ServiceHandle``; it can be provided as a constructor argument or explicit parameter.
+* **Singleton-like shared objects (e.g., Geometry).** Objects that are read-only after initialization and shared across algorithms are not fundamentally services.
+  In *Phlex*, such objects are data products belonging to a long-lived data family (e.g., a job-level or run-level family) and are provided to algorithms through the normal data-flow mechanism, not through a globally accessible handle.
+* **Conditions-style and database-derived data.** Calibration offsets, channel maps, and other data that vary by run or time interval but are independent of individual events are exactly what framework-managed data families are for.
+  Rather than wrapping a database client in a service and calling it from algorithm code, the data should be fetched by a dedicated algorithm and placed into the appropriate data family so that downstream algorithms receive it as an explicit input.
 
-A few preparation rules apply across all *art* concepts:
+Cases where a service dependency may remain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* keep framework retrieval and framework-owned identity at the module boundary,
-* do not cache event-scoped objects across events,
-* prefer explicit inputs over implicit framework access,
-* prefer ordinary C++ containers and references in helper code, and
-* preserve *art*-specific types only where persisted behavior requires them.
+Some service uses are harder to eliminate before a full migration and may remain at the framework boundary during a staged separation:
 
-Preparation Checklist
----------------------
+* The service genuinely needs the *art* lifecycle, for example because it registers callbacks for run, subrun, or job transitions that are not accessible to a plain module.
+* The service is part of a stable public extension interface that other packages depend on and that cannot be changed independently.
+* The service enforces singleton or ordering constraints that are a real framework requirement, not merely a convenience.
 
-Before moving to refactoring, review the code with the following questions.
+Even in these cases the separation goal is the same: keep the service call confined to the module boundary and prevent it from reaching into algorithm code.
+The algorithm should receive whatever data or object the service provides as an ordinary C++ argument, not by constructing a ``ServiceHandle`` internally.
 
-1. Which *art* concepts still appear in the code, and why?
-2. Which remaining uses are required for persisted outputs or framework-owned identity?
-3. Which uses have been reduced to ordinary C++ data at the algorithm boundary?
-4. Which helper interfaces still expose framework types unnecessarily?
-5. Which remaining dependencies need a deliberate migration design rather than
-   a mechanical cleanup?
 
-Preparation Example: Explicit Inputs
-------------------------------------
+Separation Example: Explicit Inputs
+-----------------------------------
 
 The ``gauss_hit_finder`` example in this repository shows the target shape for a prepared algorithm boundary:
 
@@ -419,4 +409,4 @@ This boundary is migration-friendly because:
 * helper algorithms are explicit dependencies, and
 * the result is returned directly.
 
-That is the intended result of preparation work, even before the final *Phlex* mapping is written.
+That is the intended result of separation work, even before the final *Phlex* binding is written.

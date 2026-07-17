@@ -224,7 +224,7 @@ Example: ``RecoCheckAna_module.cc``
 ------------------------------------
 
 The ``RecoCheckAna_module.cc`` file in ``larsim/larsim/MCCheater/`` is a
-completed example of this preparation work:
+completed example of this separation work:
 
 * Removed ``FindManyP.h`` and ``Ptr.h``; replaced with ``FindMany.h``.
 * All ``std::vector<art::Ptr<recob::Hit>>`` replaced with

@@ -1,15 +1,19 @@
-Refactoring
-===========
+Algorithm Extraction
+====================
 
-After preparation, the next step is refactoring. The purpose of refactoring is
-to separate the code into two parts:
+After framework and domain logic separation, the next step is algorithm extraction. The purpose of algorithm extraction is
+to refactor the code so the algorithm is defined in plain functions or small classes that contain no framework code and can be tested independently of framework constructs.
+
+In practice, this means separating the code into two parts:
 
 * an algorithm part, and
 * a framework-dependent part.
 
 Algorithm part
   Contains the domain logic. This code should operate on plain C++ values,
-  experiment-specific data structures, and explicitly provided helper objects.
+  experiment-specific data structures, and explicitly provided helper objects,
+  without direct use of framework callbacks, event objects, handles, services,
+  or registration machinery.
 
 Framework-dependent part
   Contains configuration lookup, input retrieval, helper construction,
@@ -17,7 +21,8 @@ Framework-dependent part
 
 The algorithm part should answer the question, "what computation is being
 performed?" The framework part should answer, "how is this computation wired
-into the framework?"
+into the framework?" A good extraction leaves the algorithm usable in an
+ordinary unit test or standalone driver without bringing in the framework.
 
 
 This is the key structural change that makes migration to *Phlex* practical.
@@ -25,21 +30,23 @@ Without it, the migration remains a translation of framework-specific code.
 With it, the migration becomes a matter of binding explicit inputs and outputs to a
 well-defined computation.
 The algorithm part can be tested and compared against the original implementation.
-The challenge is the lack of tests in the original code, which makes it difficult to verify that the refactored algorithm is correct.
-However, the refactoring process itself can be guided by the principle of minimizing changes to the core logic, while moving framework-specific code out of the algorithm and into a separate boundary layer. 
+The challenge is the lack of tests in the original code, which makes it difficult to verify that the extracted algorithm is correct.
+However, the extraction process itself can be guided by the principle of minimizing changes to the core logic, while moving framework-specific code out of the algorithm and into a separate boundary layer.
 This allows for a more modular and maintainable codebase, and makes it easier to migrate to *Phlex* in the next step.
 
-A successful refactoring produces code with the following properties.
+A successful algorithm extraction produces code with the following properties.
 
+* The algorithm is defined in plain functions or small classes.
 * The algorithm can be called from ordinary C++.
 * The algorithm no longer depends on module callbacks such as ``produce()`` or ``analyze()``.
+* The algorithm contains no direct framework code.
 * Configuration is gathered once and passed explicitly.
 * Input products are passed in as parameters.
 * Output products are returned as values.
 * Framework assumptions are visible and localized.
 
-Recommended Refactoring Pattern
--------------------------------
+Recommended Extraction Pattern
+------------------------------
 
 A useful pattern is:
 
@@ -92,10 +99,10 @@ This signature makes the algorithm boundary obvious.
 * the helper algorithms are dependencies passed in from outside, and
 * the return value is the output product.
 
-That is the refactoring target for many *art* modules: not a callback method,
+That is the extraction target for many *art* modules: not a callback method,
 but a normal computation with explicit dependencies.
 
-The following concerns usually belong outside the algorithmic core.
+The following concerns usually belong outside the algorithm code.
 
 * framework configuration retrieval,
 * event product lookup,
@@ -147,12 +154,12 @@ Once an algorithm is separated from its framework boundary:
 * it can be tested more directly,
 * it can be compared against the original implementation more easily,
 * it can be reused in multiple contexts, and
-* the final mapping to *Phlex* becomes explicit rather than implicit.
+* the final binding to *Phlex* becomes explicit rather than implicit.
 
-Refactoring Checklist
----------------------
+Algorithm Extraction Checklist
+------------------------------
 
-Before moving on to conceptual mapping, verify the following.
+Before moving on to *Phlex* binding, verify the following.
 
 1. Can the core algorithm be described without mentioning framework callbacks?
 2. Are all real inputs represented in the function signature or constructor?
@@ -161,10 +168,10 @@ Before moving on to conceptual mapping, verify the following.
 5. Is framework I/O isolated near the registration boundary?
 6. Are remaining framework assumptions documented as transitional issues?
 
-Common Refactoring Mistakes
----------------------------
+Common Extraction Mistakes
+--------------------------
 
-The following patterns usually indicate that refactoring is incomplete.
+The following patterns usually indicate that algorithm extraction is incomplete.
 
 * A helper class still reaches into framework state because that was convenient
   in the original module.

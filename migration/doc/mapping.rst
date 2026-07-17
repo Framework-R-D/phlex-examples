@@ -1,17 +1,17 @@
-Mapping
-=======
+Phlex Binding
+=============
 
-Once a component has been prepared and refactored, the remaining task is to
-express it in *Phlex* concepts. This is the mapping stage.
+Once a component has gone through framework and domain logic separation and algorithm extraction, the remaining task is to
+express it in *Phlex* concepts. This is the binding stage.
 
 The goal is not to reproduce an *art* module line by line. The goal is to
 describe the same computation in terms of explicit dataflow, explicit
 dependencies, explicit layering, and explicit outputs.
 
-Mapping Mindset
+Binding Mindset
 ---------------
 
-A useful way to think about mapping is to change the guiding question.
+A useful way to think about binding is to change the guiding question.
 
 In *art*, the question is often:
 
@@ -25,14 +25,14 @@ In *Phlex*, the question is instead:
 * what layer does the computation belong to?
 * does it create, transform, accumulate, expand, or simply observe data?
 
-That shift in viewpoint is what makes a refactored component map naturally into
+That shift in viewpoint is what makes an extracted component bind naturally into
 *Phlex*.
 
-Mapping to Higher-Order Functions
+Binding to Higher-Order Functions
 ---------------------------------
 
 Current *Phlex* code is organized around a small set of higher-order
-registration functions. Most migrated code maps to one of the following.
+registration functions. Most migrated code binds to one of the following.
 
 ``provide``
 ^^^^^^^^^^^
@@ -53,7 +53,7 @@ A current registration shape looks like this:
    g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
      .output_product(product_query{.creator = "input", .layer = "event", .suffix = "numbers"});
 
-Mapping rule:
+Binding rule:
 
 *art* code that fetches data from outside the normal event-product flow and then
 makes it available to later stages often becomes a ``provide`` node.
@@ -64,7 +64,7 @@ makes it available to later stages often becomes a ``provide`` node.
 Use ``transform`` when the callable consumes one or more products and returns a
 new product.
 
-This is the most common mapping for an *art* ``EDProducer``. A current
+This is the most common binding for an *art* ``EDProducer``. A current
 registration shape looks like this:
 
 .. code-block:: cpp
@@ -74,7 +74,7 @@ registration shape looks like this:
                    product_query{.creator = "input", .layer = layer, .suffix = "j"})
      .output_product_suffixes("sum");
 
-Mapping rule:
+Binding rule:
 
 * ``event.getProduct(...)`` becomes ``.input_family(...)`` plus normal function
   arguments.
@@ -106,7 +106,7 @@ The examples deck also shows the multithreaded version:
      .input_family(product_query{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
      .output_product_suffixes("sum1");
 
-Mapping rule:
+Binding rule:
 
 * mutable module members such as ``sum_`` become explicit fold state,
 * reset logic in ``beginSubRun()`` becomes the fold's initial value,
@@ -132,7 +132,7 @@ products. A current registration shape from the *Phlex* tree is:
      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
      .output_product_suffixes("new_number");
 
-Mapping rule:
+Binding rule:
 
 *art* code that manually loops over a collection, creates per-item work units,
 or implicitly expands one product into many downstream computations should often
@@ -160,7 +160,7 @@ A current registration shape looks like this:
      .input_family(product_query{.creator = "input", .layer = "job"},
                    product_query{.creator = "add", .layer = layer});
 
-Mapping rule:
+Binding rule:
 
 *art* analyzers and producer-side validation code often become ``observe``
 nodes. If no new product is emitted, ``observe`` is usually the right model.
@@ -181,7 +181,7 @@ The following table-of-rules is a useful starting point during migration.
 * ``EDAnalyzer`` or validation-only logic: usually ``observe``.
 
 These are not rigid categories. A single *art* module may need to be split into
-multiple *Phlex* nodes. That is often a sign that the mapping is becoming more
+multiple *Phlex* nodes. That is often a sign that the binding is becoming more
 accurate, not less.
 
 Worked Examples
@@ -255,10 +255,60 @@ captured directly as a fold:
      current_sum += value;
    }
 
+   class SumAcrossSubRun : public art::EDProducer {
+   public:
+     explicit SumAcrossSubRun(fhicl::ParameterSet const& pset)
+       : input_token_{consumes<int>(pset.get<art::InputTag>("input_tag"))}
+     {
+       produces<int, art::InSubRun>();
+     }
+
+     void beginSubRun(art::SubRun&)
+     {
+       sum_ = 0;
+     }
+
+     void produce(art::Event& event) override
+     {
+       auto const& value = event.getProduct(input_token_);
+       accumulate(sum_, value);
+     }
+
+     void endSubRun(art::SubRun& subrun) override
+     {
+       subrun.put(std::make_unique<int>(sum_));
+     }
+
+   private:
+     art::ProductToken<int> input_token_;
+     int sum_ = 0;
+   };
+
+The corresponding *Phlex* form makes the reduction explicit:
+
+.. code-block:: cpp
+
+   void accumulate(int& current_sum, int value)
+   {
+     current_sum += value;
+   }
+
    PHLEX_REGISTER_ALGORITHM(pset) {
      fold("MySum", accumulate, 0, "subrun", concurrency::serial)
        .input_family(pset.get<input_tag>("input_tag"));
    }
+
+The binding is direct:
+
+* ``art::ProductToken<int>`` plus ``event.getProduct(input_token_)`` maps to
+  ``.input_family(...)`` and a normal fold input argument.
+* ``sum_`` maps to the explicit fold state.
+* ``beginSubRun()`` resetting ``sum_ = 0`` maps to the fold initial value
+  ``0``.
+* ``produce()`` calling ``accumulate(sum_, value)`` maps to the fold step
+  function ``accumulate``.
+* ``endSubRun()`` and ``subrun.put(...)`` map to the fold's subrun-level output
+  product.
 
 When the accumulation can run concurrently, *Phlex* expresses that at the
 registration site instead of forcing the module author to manage locks inside the
@@ -299,7 +349,7 @@ providers and then consumed by transforms:
      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "numbers"})
      .output_product_suffixes("tripled");
 
-This mapping is useful when an *art* module both fetches boundary data and
+This binding is useful when an *art* module both fetches boundary data and
 performs physics logic. In *Phlex*, those concerns are often cleaner when split
 into separate nodes.
 
@@ -323,10 +373,10 @@ This is the explicit *Phlex* form of a pattern that is often buried inside a
 single *art* module: create many pieces of work, process them, and reduce the
 results.
 
-Example Mapping: Gauss Hit Finder
+Example Binding: Gauss Hit Finder
 ---------------------------------
 
-The ``gauss_hit_finder`` example is a realistic ``transform`` mapping.
+The ``gauss_hit_finder`` example is a realistic ``transform`` binding.
 
 Input: A ``std::vector<recob::Wire>`` product is supplied to the transformation.
 
@@ -349,7 +399,7 @@ Output: The result is published with the ``hits`` product suffix.
 Concrete Registration Shape
 ---------------------------
 
-The example expresses the mapping with a *Phlex* registration that looks like
+The example expresses the binding with a *Phlex* registration that looks like
 this:
 
 .. code-block:: cpp
@@ -370,14 +420,14 @@ this:
      .input_family(product_query{.creator = "wires", .layer = layer, .suffix = ""})
      .output_product_suffixes("hits");
 
-This shows the main mapping ideas clearly.
+This shows the main binding ideas clearly.
 
 * Input declaration is explicit.
 * Configuration is captured explicitly.
 * Helper dependencies are captured explicitly.
 * The transformation returns the output product directly.
 
-Transitional Mapping Issues
+Transitional Binding Issues
 ---------------------------
 
 Some migrations will reach a valid intermediate state before every framework feature is available in *Phlex*.
@@ -388,13 +438,13 @@ The example in this repository includes several such transitional issues.
 * a temporary file-based provider is used for comparison-driven testing, and
 * output sorting and printing are present to aid validation against the *art* implementation.
 
-These are not failures of the mapping.
+These are not failures of the binding.
 They are temporary boundary conditions that should be documented openly and reduced over time.
 
-Mapping Checklist
------------------
+Phlex Binding Checklist
+-----------------------
 
-Before considering a mapping complete, verify the following.
+Before considering a binding complete, verify the following.
 
 1. The computation has been expressed with the appropriate higher-order
    function: ``provide``, ``transform``, ``fold``, ``unfold``, or ``observe``.
@@ -403,4 +453,3 @@ Before considering a mapping complete, verify the following.
 4. Remaining service-like dependencies are explicit at registration time.
 5. Layer boundaries and accumulation or expansion behavior are explicit.
 6. Transitional issues are documented rather than hidden.
-
