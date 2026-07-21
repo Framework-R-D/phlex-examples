@@ -16,10 +16,11 @@
     },
   },
   modules: {
-    find_hits_with_gaussians_design1_cpp: {
-      cpp: 'find_hits_with_gaussians_design1_hof',
-      layer_unfold_input: 'spill',
-      layer_unfold_output: 'wire',
+    find_hits_with_gaussians_design2_cpp: {
+      cpp: 'find_hits_with_gaussians_design2_hof',
+      layer_vector_of_wires: 'spill',
+      layer_wire: 'wire',
+      layer_roi: 'roi',
 
       filter_hits: false,
       long_max_hits_vec: [1, 1, 1],
@@ -58,9 +59,9 @@
     },
     print_hits_to_file_cpp: {
       cpp: 'print_hits_to_file_hof',
-      creator: 'fold_hits_into_vector_design1',
+      creator: 'fold_hits_into_vector_design2',
       layer: 'spill',
-      filename_prefix: 'hits_design1',
+      filename_prefix: 'hits_design2',
     },
 
   },

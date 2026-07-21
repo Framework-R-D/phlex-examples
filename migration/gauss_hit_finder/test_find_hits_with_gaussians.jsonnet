@@ -19,13 +19,7 @@
     find_hits_with_gaussians_cpp: {
       cpp: 'find_hits_with_gaussians_hof',
       layer: 'spill',
-      // Copied in the configuration parameters that
-      // I obtained from "Far Detector Simulation/Reconstruction conveners":
-      // Dominic Brailsford and Laura Paulucci (in cc). See Dom and Kyle
-      // 2/17/2026 on SLACK and also email around the same time. These were
-      // copied out of the expanded fcl configuration. Note that the ones
-      // that have different values for different planes are not used when
-      // filter_hits is false.
+
       filter_hits: false,
       long_max_hits_vec: [1, 1, 1],
       long_pulse_width_vec: [16, 16, 16],
@@ -65,6 +59,7 @@
       cpp: 'print_hits_to_file_hof',
       creator: 'find_hits_with_gaussians',
       layer: 'spill',
+      filename_prefix: 'hits',
     },
   },
 }
