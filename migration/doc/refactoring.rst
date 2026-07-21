@@ -1,8 +1,8 @@
 Algorithm Extraction
 ====================
 
-After framework and domain logic separation, the next step is algorithm extraction. The purpose of algorithm extraction is
-to refactor the code so the algorithm is defined in plain functions or small classes that contain no framework code and can be tested independently of framework constructs.
+After framework and domain logic separation, the next step is algorithm extraction.
+The purpose of algorithm extraction is to refactor the code so the algorithm is defined in plain functions or small classes that contain no framework code and can be tested independently.
 
 In practice, this means separating the code into two parts:
 
@@ -22,17 +22,14 @@ Framework-dependent part
 The algorithm part should answer the question, "what computation is being
 performed?" The framework part should answer, "how is this computation wired
 into the framework?" A good extraction leaves the algorithm usable in an
-ordinary unit test or standalone driver without bringing in the framework.
-
+ordinary unit test or standalone driver without bringing in framework code.
 
 This is the key structural change that makes migration to *Phlex* practical.
-Without it, the migration remains a translation of framework-specific code. 
-With it, the migration becomes a matter of binding explicit inputs and outputs to a
+Without it, migration remains a translation of framework-specific code.
+With it, migration becomes a matter of binding clear inputs and outputs to a
 well-defined computation.
-The algorithm part can be tested and compared against the original implementation.
-The challenge is the lack of tests in the original code, which makes it difficult to verify that the extracted algorithm is correct.
-However, the extraction process itself can be guided by the principle of minimizing changes to the core logic, while moving framework-specific code out of the algorithm and into a separate boundary layer.
-This allows for a more modular and maintainable codebase, and makes it easier to migrate to *Phlex* in the next step.
+The extracted algorithm can then be tested and compared against the original implementation.
+Because many original modules have limited test coverage, extraction should minimize changes to the core logic while moving framework-specific code into a separate boundary layer.
 
 A successful algorithm extraction produces code with the following properties.
 
@@ -77,9 +74,9 @@ The ``gauss_hit_finder`` example defines a plain configuration structure in
      std::vector<float> pulse_ratio_cuts;
    };
 
-This is a useful migration pattern because the structure can exist independent
+This is a useful migration pattern because the structure can exist independently
 of either *art* or *Phlex*. It is a normal C++ representation of the settings
-that the algorithm needs.
+the algorithm needs.
 
 The same example exposes the algorithm through a normal function:
 
@@ -92,7 +89,7 @@ The same example exposes the algorithm through a normal function:
                             PeakFitterMrqdt const& peak_fitter_mrqdt,
                             HitFilterAlg const& hit_filter_alg);
 
-This signature makes the algorithm boundary obvious.
+This signature makes the algorithm boundary obvious:
 
 * ``cfg`` is immutable configuration.
 * ``wires`` is the explicit input product.
@@ -181,5 +178,5 @@ The following patterns usually indicate that algorithm extraction is incomplete.
 * The new code preserves the old module structure even when the algorithm itself
   is much simpler.
 
-The goal is not to preserve familiar structure. 
-The goal is to expose the real computation cleanly enough that it can be expressed in *Phlex*.
+The goal is not to preserve familiar structure.
+It is to expose the real computation cleanly enough that it can be expressed in *Phlex*.

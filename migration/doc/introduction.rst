@@ -1,10 +1,9 @@
 Introduction
 ============
 
-This guide provides practical guidance for migrating code that uses the event processing framework, *art* to *Phlex*.
+This guide provides practical guidance for migrating code from the event-processing framework *art* to *Phlex*.
 Before code can be expressed naturally in *Phlex*, it often needs to be simplified and reorganized.
-The main difference in style is that *art* modules are typically written around an event-processing loop owned by the framework, while *Phlex* encourages a
-more functional style: explicit inputs, explicit outputs, and algorithms that can be executed independently of framework state.
+The main difference in style is that *art* modules are typically written around an event-processing loop owned by the framework, while *Phlex* encourages algorithms with clear inputs and outputs that can run independently of framework state.
 For that reason, this guide is organized around the steps that make that transition manageable.
 
 The guide has three parts:  
@@ -18,13 +17,12 @@ It does not assume that the original code was written with migration in mind.
 
 In this guide, the framework boundary is the code that directly interacts with
 the framework: configuration lookup, input retrieval, service access,
-registration, and output publication. The goal of migration is to keep those
-framework-specific operations at that boundary and keep the algorithm itself as
-ordinary C++.
+registration, and output publication. The goal of migration is to confine those
+operations to that boundary and keep the algorithm itself as ordinary C++.
 
 The guide also assumes that migration may happen in stages.
 In many cases, the best first step is not to write *Phlex* code immediately, but to make the existing *art* code easier to reason about.
-That separation work often yields simpler, more testable code even before the final migration is complete.
+That separation work often yields simpler, more testable code before the final migration is complete.
 
 Because many existing code bases have limited test coverage, some migration work will require careful manual validation.
 The examples in this guide therefore aim to make behavior-preserving algorithm extraction into framework-independent code as explicit as possible.

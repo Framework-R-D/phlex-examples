@@ -4,9 +4,9 @@ Phlex Binding
 Once a component has gone through framework and domain logic separation and algorithm extraction, the remaining task is to
 express it in *Phlex* concepts. This is the binding stage.
 
-The goal is not to reproduce an *art* module line by line. The goal is to
-describe the same computation in terms of explicit dataflow, explicit
-dependencies, explicit layering, and explicit outputs.
+The goal is not to reproduce an *art* module line by line.
+It is to describe the same computation in terms of clear dataflow,
+dependencies, layering, and outputs.
 
 Binding Mindset
 ---------------
@@ -113,7 +113,7 @@ Binding rule:
 * per-event updates become the fold function, and
 * final publication in ``endSubRun()`` becomes the fold output product.
 
-The main conceptual win is that the reduction is explicit. There is no hidden
+The main conceptual win is that the reduction is visible. There is no hidden
 state machine spread across framework callbacks.
 
 ``unfold``
@@ -237,8 +237,8 @@ the same computation is expressed directly as a transform:
        .input_family(pset.get<input_tag>("input_tag"));
    }
 
-The important change is not syntax. The important change is that the framework
-callback protocol disappears and the data transformation becomes explicit.
+The important change is not syntax.
+It is that the framework callback protocol disappears and the data transformation becomes visible in the registration itself.
 
 Simple Fold: Accumulating Across a Subrun
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -332,7 +332,7 @@ Some migrated code naturally becomes more than one node. The
                    product_query{.creator = "add", .layer = layer});
 
 This is a good example of how *Phlex* encourages one node for data creation and
-a separate node for checking or side effects.
+another for checking or side effects.
 
 Provider Plus Transform
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -420,11 +420,11 @@ this:
      .input_family(product_query{.creator = "wires", .layer = layer, .suffix = ""})
      .output_product_suffixes("hits");
 
-This shows the main binding ideas clearly.
+This example shows the main binding ideas clearly.
 
 * Input declaration is explicit.
-* Configuration is captured explicitly.
-* Helper dependencies are captured explicitly.
+* Configuration is captured directly.
+* Helper dependencies are captured directly.
 * The transformation returns the output product directly.
 
 Transitional Binding Issues

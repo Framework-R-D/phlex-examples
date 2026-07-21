@@ -2,9 +2,9 @@ Framework and Domain Logic Separation
 =====================================
 
 The objective of the framework and domain logic separation step is to remove, reduce, or isolate *art* concepts that would otherwise leak deep into algorithm code and make later migration more complicated than necessary.
-This is not yet the point where a module is rewritten in *Phlex* terms.
+This step prepares the code for migration; it does not yet rewrite the module in *Phlex* terms.
 
-In many code bases, *art* concepts appear deep inside algorithm code.
+In many code bases, *art* concepts appear throughout the module code.
 That is usually the result of incremental history rather than a true requirement.
 The first task is therefore to identify which framework constructs are essential, and which are merely convenient.
 
@@ -27,11 +27,11 @@ Framework and domain logic separation is successful when:
 * data flow is easier to see,
 * ownership is easier to reason about,
 * event-scoped state is localized, and
-* algorithm code can start to look like ordinary C++.
+* algorithm code starts to look like ordinary C++.
 
 
 The goal of this separation work is not to remove every *art* type immediately.
-The goal is to decide which framework concepts are required to preserve the module's framework-visible output and identity and which ones are only convenience mechanisms that should be reduced to ordinary C++ before migration.
+It is to decide which framework concepts are required to preserve the module's framework-visible output and identity and which ones are only convenience mechanisms that should be reduced to ordinary C++ before migration.
 The sections below group the main separation work into a small number of useful categories.
 
 Cross-Cutting Rules
@@ -136,7 +136,7 @@ Data Product Retrieval and Event-Boundary Access
 ------------------------------------------------
 
 *art* naturally encourages product retrieval inside module callbacks, but that convenience often hides the real inputs to the algorithm.
-When helper code pulls products directly from the event, its dependencies become implicit and the code is harder to test, reuse, or map into *Phlex* dataflow declarations.
+When helper code pulls products directly from the event, its dependencies become implicit and the code becomes harder to test, reuse, or map into *Phlex* dataflow declarations.
 
 The useful separation rule is simple: move retrieval to the top-level framework boundary and convert retrieved products into explicit function parameters.
 Identify every call path that reaches into the event, list the actual products the algorithm requires, remove event access from helper classes unless they are intentionally part of the framework layer, and keep ``art::Handle`` objects local to the event callback.
@@ -209,7 +209,7 @@ When ``getByLabel`` is combined with ``fill_ptr_vector``, as in ``ClusterCheater
    art::fill_ptr_vector(hits, hitcol);
 
 When a helper class or tool receives the event object and calls retrieval APIs internally, retrieval should instead be performed at the module boundary and the product passed in explicitly.
-``TrackProducerFromTrack_module.cc`` in ``larreco/TrackFinder/`` illustrates the boundary shape after this separation work: retrieval is done in ``produce()`` with ``getValidHandle`` before any helper is invoked, and helpers receive the retrieved data rather than reaching into the event themselves:
+``TrackProducerFromTrack_module.cc`` in ``larreco/TrackFinder/`` illustrates the intended boundary shape after this separation work: retrieval is done in ``produce()`` with ``getValidHandle`` before any helper is invoked, and helpers receive the retrieved data rather than reaching into the event themselves:
 
 .. code-block:: cpp
 
@@ -242,23 +242,22 @@ Even then, the separation goal is to keep that representation out of reusable al
 AI tools can help inventory helpers such as ``FindOneP``, ``FindManyP``, and ``art::Assns`` construction and distinguish navigation-only use from persisted-output use.
 Review those changes carefully when the code builds new associations or when helper logic depends on stable framework identity rather than simple object access.
 
-*art* Services
+Services
 ------------------------------------------------
 
 *Phlex* does not have a concept of services.
 
 An *art* service is a globally accessible stateful object with a specific lifecycle: it is constructed before the first module and destroyed after the last.
 Services can register callbacks for framework transitions that are not accessible to modules, depend on other services through ``art::ServiceHandle``, and be polymorphic.
-That broad capability makes them convenient, but also makes them a frequent source of hidden dependencies that complicate migration.
+That flexibility makes them convenient, but it also makes them a frequent source of hidden dependencies that complicate migration.
 
-For migration work, the main question is usually not how to write a new service.
-It is how to take existing module or helper code that currently reaches into a service and reshape that code so the algorithm can later be wired by *Phlex*.
-The key rule for this preparation step is simple: ``art::ServiceHandle`` belongs at the framework boundary, not inside reusable algorithm code.
 
 Guidance for Existing Code Using Services
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When preparing existing code, start by inventorying every place that constructs a ``ServiceHandle`` or otherwise depends on a service-provided object.
+The key rule is simple: ``art::ServiceHandle`` belongs at the framework boundary, not inside reusable algorithm code.
+
 For each use, identify what the downstream code actually needs:
 
 * a read-only value or data structure,
@@ -266,8 +265,7 @@ For each use, identify what the downstream code actually needs:
 * a side effect such as logging or output production, or
 * a true framework-lifecycle feature that cannot yet be represented another way.
 
-That classification determines the migration step.
-In most cases, the code should be changed so that the module retrieves the service-provided data or object once at the boundary and then passes ordinary C++ inputs into the algorithm.
+In most cases, the module should retrieve the service-provided data or object at the boundary and then pass ordinary C++ inputs into the algorithm.
 
 As a practical guide for existing code:
 
@@ -282,7 +280,7 @@ This rewrite makes the dependency graph visible in ordinary C++ terms.
 That is the important preparation step for *Phlex*: once the algorithm accepts explicit inputs, the later migration is primarily a matter of declaring where those inputs come from.
 
 Preparing the boundary: separating framework and algorithm code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The most common problematic pattern is an algorithm that constructs a ``ServiceHandle`` inside its own body:
 
@@ -303,7 +301,7 @@ The most common problematic pattern is an algorithm that constructs a ``ServiceH
      e.put(std::make_unique<Tracks>(std::move(tracks)), "GoodTracks");
    }
 
-This couples the algorithm directly to the framework, hides the calibration data as an implicit dependency, makes provenance incomplete, and makes thread-safety unclear because ``ServiceHandle`` access patterns vary by service.
+This couples the algorithm directly to the framework, hides the calibration data as an implicit dependency, makes provenance incomplete, and can make thread-safety harder to reason about because ``ServiceHandle`` access patterns vary by service.
 
 The separation fix is to retrieve the service data at the module boundary and pass it to the algorithm as an explicit argument:
 
@@ -324,10 +322,10 @@ The separation fix is to retrieve the service data at the module boundary and pa
      e.put(std::make_unique<Tracks>(std::move(tracks)), "GoodTracks");
    }
 
-After this change the algorithm is framework-independent, its dependency on the calibration offset is explicit, and thread-safety is straightforward to reason about because the algorithm itself holds no framework state.
+After this change the algorithm is framework-independent, its dependency on the calibration offset is explicit, and thread-safety is easier to reason about because the algorithm itself holds no framework state.
 
 This is the intended separation shape even when the *art* service cannot yet be removed.
-Once the codebase uses *Phlex*, the same algorithm function requires no change at all; the framework registration simply declares where the offset comes from:
+Once the codebase uses *Phlex*, the same algorithm function can remain unchanged; the framework registration simply declares where the offset comes from:
 
 .. code-block:: cpp
 
@@ -385,7 +383,7 @@ Some service uses are harder to eliminate before a full migration and may remain
 * The service enforces singleton or ordering constraints that are a real framework requirement, not merely a convenience.
 
 Even in these cases the separation goal is the same: keep the service call confined to the module boundary and prevent it from reaching into algorithm code.
-The algorithm should receive whatever data or object the service provides as an ordinary C++ argument, not by constructing a ``ServiceHandle`` internally.
+The algorithm should receive whatever data or object the service provides as an ordinary C++ argument rather than by constructing a ``ServiceHandle`` internally.
 
 
 Separation Example: Explicit Inputs
