@@ -1,71 +1,79 @@
 Phlex Binding
 =============
 
-Once a component has gone through framework and domain logic separation and algorithm extraction, the remaining task is to
-express it in *Phlex* concepts. This is the binding stage.
+Once a component has gone through framework and domain logic separation and
+algorithm extraction, the remaining task is to express it in *Phlex* terms.
+This is the binding stage.
 
-The goal is not to reproduce an *art* module line by line.
-It is to describe the same computation in terms of clear dataflow,
-dependencies, layering, and outputs.
+Binding is not a line-by-line rewrite of an *art* module. The extracted
+algorithm already says what the computation is. Binding says how that
+computation appears in the *Phlex* graph: what products it consumes, what it
+produces, what layer it belongs to, and which node shape best describes it.
 
-Binding Mindset
----------------
+One *art* module does not necessarily become one *Phlex* node. A module that
+mixed boundary input, algorithmic transformation, reduction, and validation
+often becomes several nodes. That split is not a complication — it is the
+point. Each node becomes simpler and its role more explicit.
 
-A useful way to think about binding is to change the guiding question.
+The organizing questions change:
 
-In *art*, the question is often:
+In *art*, the question is often "what happens when the framework calls
+``produce()``, ``beginSubRun()``, ``endSubRun()``, or ``analyze()``?"
 
-* what does this module do when the framework calls ``produce()``,
-  ``beginSubRun()``, ``endSubRun()``, or ``analyze()``?
+In *Phlex*, the questions are:
 
-In *Phlex*, the question is instead:
-
-* which higher-order function best describes this computation?
-* what are the input products?
-* what layer does the computation belong to?
-* does it create, transform, accumulate, expand, or simply observe data?
-
-That shift in viewpoint is what makes an extracted component bind naturally into
-*Phlex*.
+* what is the callable shape of the extracted algorithm?
+* which data products are its explicit inputs?
+* what layer does it run in?
+* does it create, transform, accumulate, expand, or observe data?
 
 Binding to Higher-Order Functions
----------------------------------
+----------------------------------
 
-Current *Phlex* code is organized around a small set of higher-order
-registration functions. Most migrated code binds to one of the following.
+*Phlex* code is organized around a small set of higher-order registration
+functions. The question to ask is not "which *art* class did this come from?"
+but "what kind of computation is this?"
 
 ``provide``
 ^^^^^^^^^^^
 
 Use ``provide`` when the callable creates a product without consuming another
-*Phlex* product as input.
+*Phlex* product as input. This is the boundary adapter that makes some input
+available to later nodes — typically not the extracted physics algorithm itself.
 
-Typical uses are:
+Typical uses:
 
-* creating seed data for tests,
-* exposing configuration-derived or job-level data as products, and
-* publishing data that originates at the framework boundary.
+* exposing configuration-derived or job-level data as products,
+* introducing data that originates outside the graph (e.g. from files or
+  external services).
 
-A current registration shape looks like this:
+Registration shape:
 
 .. code-block:: cpp
 
-   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
-     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "numbers"});
+   m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number(); })
+     .output_product({.creator = "input", .layer = layer, .suffix = "i"});
 
-Binding rule:
+   s.provide("provide_geometry",
+             [geometry_name](phlex::data_cell_index const& /* job */) -> examples::geometry {
+               return examples::geometry{geometry_name};
+             })
+     .output_product({.creator = "input", .layer = "job", .suffix = "geometry"});
 
-*art* code that fetches data from outside the normal event-product flow and then
-makes it available to later stages often becomes a ``provide`` node.
+*art* code that reaches outside the normal event-product flow to obtain input
+and makes it available to later computations often becomes a ``provide`` node.
+When an original *art* module mixed boundary acquisition with algorithmic work,
+those two concerns are usually cleaner as a ``provide`` node followed by a
+``transform`` node.
 
 ``transform``
 ^^^^^^^^^^^^^
 
-Use ``transform`` when the callable consumes one or more products and returns a
-new product.
+Use ``transform`` when the callable consumes one or more products and returns
+a new product. This is the most common binding for an extracted algorithm that
+used to live in an *art* ``EDProducer``.
 
-This is the most common binding for an *art* ``EDProducer``. A current
-registration shape looks like this:
+Registration shape:
 
 .. code-block:: cpp
 
@@ -76,55 +84,65 @@ registration shape looks like this:
 
 Binding rule:
 
-* ``event.getProduct(...)`` becomes ``.input_family(...)`` plus normal function
-  arguments.
-* ``event.put(...)`` becomes the callable return value plus
-  ``.output_product_suffixes(...)``.
-* producer state that is really configuration or helper setup becomes lambda
-  capture or an object constructed during registration.
+* ``event.getProduct(...)`` becomes ``.input_family(...)`` plus ordinary
+  function arguments,
+* ``event.put(...)`` becomes the callable return value plus the output
+  declaration, and
+* module members that are configuration or helper setup become lambda capture
+  or objects constructed during registration.
+
+When the extracted computation is already a normal function with explicit
+arguments and a returned result, the binding is usually direct.
 
 ``fold``
 ^^^^^^^^
 
-Use ``fold`` when many products from a lower layer must be accumulated into one
-product at a higher layer.
+Use ``fold`` when many lower-layer products must be accumulated into one
+product at a higher layer. This is the natural binding for code that used to
+spread a reduction across callbacks such as ``beginSubRun()``, ``produce()``,
+and ``endSubRun()``.
 
-This maps naturally from *art* code that spreads state across callbacks such as
-``beginSubRun()``, ``produce()``, and ``endSubRun()``. In *Phlex*, the
-accumulation pattern is described directly:
-
-.. code-block:: cpp
-
-   fold("MySum", accumulate, 0, "subrun", concurrency::serial)
-     .input_family(pset.get<input_tag>("input_tag"));
-
-The examples deck also shows the multithreaded version:
+The step function shape is:
 
 .. code-block:: cpp
 
-   g.fold("add", add, concurrency::unlimited, "event")
-     .input_family(product_query{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
-     .output_product_suffixes("sum1");
+   void step(State& state, Input const& value);
+
+Registration shape:
+
+.. code-block:: cpp
+
+   g.fold("run_add", add, concurrency::unlimited, "run")
+     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
+     .output_product_suffixes("run_sum");
 
 Binding rule:
 
-* mutable module members such as ``sum_`` become explicit fold state,
-* reset logic in ``beginSubRun()`` becomes the fold's initial value,
-* per-event updates become the fold function, and
+* mutable module members become explicit fold state,
+* reset logic in ``beginSubRun()`` becomes the fold initial value,
+* per-event updates become the fold step function, and
 * final publication in ``endSubRun()`` becomes the fold output product.
 
-The main conceptual win is that the reduction is visible. There is no hidden
-state machine spread across framework callbacks.
+The fold target layer is declared directly at the registration site. There is
+no hidden state machine spread across callbacks.
 
 ``unfold``
 ^^^^^^^^^^
 
-Use ``unfold`` when one input product drives the creation of many products in a
-lower layer.
+Use ``unfold`` when one input product drives the creation of many products in
+a lower layer. This is the right model when a former *art* module implicitly
+expanded one product into many work items by looping over a collection or
+splitting a data block inside one callback.
 
-This is the dual of a fold. Rather than accumulating many lower-layer products
-into one higher-layer result, an unfold expands one product into many lower-layer
-products. A current registration shape from the *Phlex* tree is:
+The unfold class provides:
+
+.. code-block:: cpp
+
+   Value initial_value() const;
+   bool predicate(Value) const;
+   std::pair<Value, Product> unfold(Value) const;
+
+Registration shape:
 
 .. code-block:: cpp
 
@@ -132,12 +150,9 @@ products. A current registration shape from the *Phlex* tree is:
      .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
      .output_product_suffixes("new_number");
 
-Binding rule:
-
-*art* code that manually loops over a collection, creates per-item work units,
-or implicitly expands one product into many downstream computations should often
-be rewritten as an explicit ``unfold`` followed by later ``transform`` or
-``fold`` stages.
+*art* code that manually expands one product into many downstream pieces of
+work is often clearer as an explicit ``unfold``, usually followed by a
+``transform`` or ``fold`` on the lower-layer products.
 
 ``observe``
 ^^^^^^^^^^^
@@ -145,14 +160,13 @@ be rewritten as an explicit ``unfold`` followed by later ``transform`` or
 Use ``observe`` when the callable consumes products but does not publish a new
 product.
 
-Typical uses are:
+Typical uses:
 
 * validation,
-* logging,
 * assertions in examples and tests, and
 * terminal side effects such as writing externally managed output.
 
-A current registration shape looks like this:
+Registration shape:
 
 .. code-block:: cpp
 
@@ -160,37 +174,42 @@ A current registration shape looks like this:
      .input_family(product_query{.creator = "input", .layer = "job"},
                    product_query{.creator = "add", .layer = layer});
 
-Binding rule:
+*art* analyzers, validation-only code, and producer-side checks that do not
+emit new products often become ``observe`` nodes.
 
-*art* analyzers and producer-side validation code often become ``observe``
-nodes. If no new product is emitted, ``observe`` is usually the right model.
+Crosswalk from Extracted *art* Designs
+----------------------------------------
 
-Crosswalk from *art* Patterns
------------------------------
++---------------------------------------------------+-------------------+
+| Extracted design                                  | *Phlex* node      |
++===================================================+===================+
+| Function: computes one output from explicit inputs| ``transform``     |
++---------------------------------------------------+-------------------+
+| Boundary adapter: introduces data from outside    | ``provide``       |
+| the graph (files, services, configuration)        |                   |
++---------------------------------------------------+-------------------+
+| Callback-driven accumulation across events,       | ``fold``          |
+| subruns, or runs                                  |                   |
++---------------------------------------------------+-------------------+
+| Loop that expands one input into many work items  | ``unfold``        |
++---------------------------------------------------+-------------------+
+| Validation or terminal side-effect logic          | ``observe``       |
++---------------------------------------------------+-------------------+
 
-The following table-of-rules is a useful starting point during migration.
-
-* ``EDProducer`` that computes one output from explicit inputs:
-  usually ``transform``.
-* ``EDProducer`` that only exposes boundary data to the graph:
-  usually ``provide``.
-* ``EDProducer`` or ``SharedProducer`` that accumulates across events into a
-  subrun- or run-level result: usually ``fold``.
-* producer logic that expands one input into many lower-layer work items:
-  usually ``unfold``.
-* ``EDAnalyzer`` or validation-only logic: usually ``observe``.
-
-These are not rigid categories. A single *art* module may need to be split into
-multiple *Phlex* nodes. That is often a sign that the binding is becoming more
-accurate, not less.
+These are not rigid categories. When one former *art* module becomes several
+*Phlex* nodes, that is often a sign that the binding is exposing the true
+dataflow rather than hiding it.
 
 Worked Examples
 ---------------
 
-Simple Transform: Power
-^^^^^^^^^^^^^^^^^^^^^^^
+Transform: Extracted Producer Algorithm
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The examples deck shows a minimal transform based on a pure function:
+The simplest binding is an extracted producer algorithm with a clean function
+signature.
+
+The extracted computation:
 
 .. code-block:: cpp
 
@@ -202,6 +221,10 @@ The examples deck shows a minimal transform based on a pure function:
      }
      return result;
    }
+
+An equivalent *art* module:
+
+.. code-block:: cpp
 
    class PowerProducer : public art::EDProducer {
    public:
@@ -223,184 +246,43 @@ The examples deck shows a minimal transform based on a pure function:
      unsigned exponent_;
    };
 
-In *art*, this appears as a producer with a consumed input token, an ``exponent``
-member, a ``produce()`` callback, and an ``event.put(...)`` call. In *Phlex*,
-the same computation is expressed directly as a transform:
+In *Phlex*, the extracted algorithm binds directly as a transform:
 
 .. code-block:: cpp
 
-   PHLEX_REGISTER_ALGORITHMS(pset) {
+   PHLEX_REGISTER_ALGORITHMS(m, pset) {
      auto f = [exp = pset.get<unsigned>("exponent")](int x) {
        return power(x, exp);
      };
-     transform("Power", f, concurrency::unlimited)
+     m.transform("Power", f, concurrency::unlimited)
        .input_family(pset.get<input_tag>("input_tag"));
    }
 
-The important change is not syntax.
-It is that the framework callback protocol disappears and the data transformation becomes visible in the registration itself.
+The callback protocol disappears. The computation appears directly as a
+function from input product to output product.
 
-Simple Fold: Accumulating Across a Subrun
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Provide Plus Transform: Splitting Boundary Input from Algorithm
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The examples deck also shows a classic accumulation pattern. In *art*, the code
-keeps ``sum_`` as module state, resets it in ``beginSubRun()``, updates it in
-``produce()``, and publishes it in ``endSubRun()``. In *Phlex*, that pattern is
-captured directly as a fold:
+When an original *art* module mixed boundary retrieval with algorithmic work,
+the *Phlex* binding often becomes two nodes.
+
+The ``gauss_hit_finder`` example in this repository has that shape. The
+boundary adapter reads wire data from files (a transitional testing mechanism)
+and makes it available as a graph product:
 
 .. code-block:: cpp
 
-   void accumulate(int& current_sum, int value)
-   {
-     current_sum += value;
-   }
-
-   class SumAcrossSubRun : public art::EDProducer {
-   public:
-     explicit SumAcrossSubRun(fhicl::ParameterSet const& pset)
-       : input_token_{consumes<int>(pset.get<art::InputTag>("input_tag"))}
-     {
-       produces<int, art::InSubRun>();
+   m.provide("provide_wires", [](data_cell_index const& id) -> std::vector<recob::Wire> {
+     std::string filename = "wires_" + std::to_string(fileCounter.fetch_add(1)) + ".dat";
+     if (auto wires = read_wires_from_file(filename)) {
+       return *wires;
      }
+     throw std::runtime_error("Failure while reading from file: " + filename);
+   })
+   .output_product(product_query{.creator = "wires", .layer = layer, .suffix = ""});
 
-     void beginSubRun(art::SubRun&)
-     {
-       sum_ = 0;
-     }
-
-     void produce(art::Event& event) override
-     {
-       auto const& value = event.getProduct(input_token_);
-       accumulate(sum_, value);
-     }
-
-     void endSubRun(art::SubRun& subrun) override
-     {
-       subrun.put(std::make_unique<int>(sum_));
-     }
-
-   private:
-     art::ProductToken<int> input_token_;
-     int sum_ = 0;
-   };
-
-The corresponding *Phlex* form makes the reduction explicit:
-
-.. code-block:: cpp
-
-   void accumulate(int& current_sum, int value)
-   {
-     current_sum += value;
-   }
-
-   PHLEX_REGISTER_ALGORITHM(pset) {
-     fold("MySum", accumulate, 0, "subrun", concurrency::serial)
-       .input_family(pset.get<input_tag>("input_tag"));
-   }
-
-The binding is direct:
-
-* ``art::ProductToken<int>`` plus ``event.getProduct(input_token_)`` maps to
-  ``.input_family(...)`` and a normal fold input argument.
-* ``sum_`` maps to the explicit fold state.
-* ``beginSubRun()`` resetting ``sum_ = 0`` maps to the fold initial value
-  ``0``.
-* ``produce()`` calling ``accumulate(sum_, value)`` maps to the fold step
-  function ``accumulate``.
-* ``endSubRun()`` and ``subrun.put(...)`` map to the fold's subrun-level output
-  product.
-
-When the accumulation can run concurrently, *Phlex* expresses that at the
-registration site instead of forcing the module author to manage locks inside the
-algorithm.
-
-Transform Plus Observe
-^^^^^^^^^^^^^^^^^^^^^^
-
-Some migrated code naturally becomes more than one node. The
-``add_and_verify.cpp`` example first computes a product and then validates it:
-
-.. code-block:: cpp
-
-   m.transform("add", examples::add, concurrency::unlimited)
-     .input_family(product_query{.creator = "input", .layer = layer, .suffix = "i"},
-                   product_query{.creator = "input", .layer = layer, .suffix = "j"})
-     .output_product_suffixes("sum");
-
-   m.observe("verify", verify_sum, concurrency::unlimited)
-     .input_family(product_query{.creator = "input", .layer = "job"},
-                   product_query{.creator = "add", .layer = layer});
-
-This is a good example of how *Phlex* encourages one node for data creation and
-another for checking or side effects.
-
-Provider Plus Transform
-^^^^^^^^^^^^^^^^^^^^^^^
-
-The *Phlex* tests also show a common pattern where graph inputs are created by
-providers and then consumed by transforms:
-
-.. code-block:: cpp
-
-   g.provide("provide_numbers", provide_numbers, concurrency::unlimited)
-     .output_product(product_query{.creator = "input", .layer = "event", .suffix = "numbers"});
-
-   g.transform("triple_numbers", triple, concurrency::unlimited)
-     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "numbers"})
-     .output_product_suffixes("tripled");
-
-This binding is useful when an *art* module both fetches boundary data and
-performs physics logic. In *Phlex*, those concerns are often cleaner when split
-into separate nodes.
-
-Unfold Followed by Fold
-^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``unfold`` tests in the *Phlex* repository show the expansion-and-reduction
-pattern explicitly:
-
-.. code-block:: cpp
-
-   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
-     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
-     .output_product_suffixes("new_number");
-
-   g.fold("add", add, concurrency::unlimited, "event")
-     .input_family(product_query{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
-     .output_product_suffixes("sum1");
-
-This is the explicit *Phlex* form of a pattern that is often buried inside a
-single *art* module: create many pieces of work, process them, and reduce the
-results.
-
-Example Binding: Gauss Hit Finder
----------------------------------
-
-The ``gauss_hit_finder`` example is a realistic ``transform`` binding.
-
-Input: A ``std::vector<recob::Wire>`` product is supplied to the transformation.
-
-Configuration: Runtime configuration is read from ``config`` and stored in a plain
-``find_hits_with_gaussians_cfg`` object.
-
-Helper objects: Supporting algorithm objects are constructed during registration:
-
-* ``CandHitStandard`` instances,
-* ``PeakFitterMrqdt``, and
-* ``HitFilterAlg``.
-
-These are then captured by the transformation lambda.
-
-Transformation: The registered callable takes wire data and returns a
-``std::vector<recob::Hit>`` by calling the extracted algorithm.
-
-Output: The result is published with the ``hits`` product suffix.
-
-Concrete Registration Shape
----------------------------
-
-The example expresses the binding with a *Phlex* registration that looks like
-this:
+The extracted hit-finding algorithm then binds as a transform:
 
 .. code-block:: cpp
 
@@ -420,36 +302,174 @@ this:
      .input_family(product_query{.creator = "wires", .layer = layer, .suffix = ""})
      .output_product_suffixes("hits");
 
-This example shows the main binding ideas clearly.
+The split is explicit:
 
-* Input declaration is explicit.
-* Configuration is captured directly.
-* Helper dependencies are captured directly.
-* The transformation returns the output product directly.
+* boundary acquisition is a ``provide`` node,
+* algorithmic work is a ``transform`` node, and
+* the extracted function is unchanged.
+
+Fold: Callback-State Accumulation Becomes Dataflow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some *art* modules are not primarily transforms. Their real behavior is a
+reduction across many lower-layer products, scattered across framework
+callbacks.
+
+A classic subrun accumulator in *art*:
+
+.. code-block:: cpp
+
+   void accumulate(int& current_sum, int value)
+   {
+     current_sum += value;
+   }
+
+   class SumAcrossSubRun : public art::EDProducer {
+   public:
+     explicit SumAcrossSubRun(fhicl::ParameterSet const& pset)
+       : input_token_{consumes<int>(pset.get<art::InputTag>("input_tag"))}
+     {
+       produces<int, art::InSubRun>();
+     }
+
+     void beginSubRun(art::SubRun&) { sum_ = 0; }
+
+     void produce(art::Event& event) override
+     {
+       accumulate(sum_, event.getProduct(input_token_));
+     }
+
+     void endSubRun(art::SubRun& subrun) override
+     {
+       subrun.put(std::make_unique<int>(sum_));
+     }
+
+   private:
+     art::ProductToken<int> input_token_;
+     int sum_ = 0;
+   };
+
+In *Phlex*, the same step function binds as a fold:
+
+.. code-block:: cpp
+
+   PHLEX_REGISTER_ALGORITHMS(m, pset) {
+     m.fold("MySum", accumulate, 0, "subrun", concurrency::serial)
+       .input_family(pset.get<input_tag>("input_tag"));
+   }
+
+The mapping is direct:
+
+* ``sum_`` becomes explicit fold state,
+* ``beginSubRun()`` resetting ``sum_ = 0`` becomes the fold initial value,
+* ``produce()`` calling ``accumulate(sum_, value)`` becomes the fold step, and
+* ``endSubRun()`` publishing the sum becomes the fold output product.
+
+Observe: Validation Becomes a Declared Node
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Validation logic often survives extraction. In *Phlex* it becomes an explicit
+node with declared inputs, rather than a comment inside a producer or a
+separate unrelated analyzer callback.
+
+.. code-block:: cpp
+
+   m.transform("add", examples::add, concurrency::unlimited)
+     .input_family(product_query{.creator = "input", .layer = layer, .suffix = "i"},
+                   product_query{.creator = "input", .layer = layer, .suffix = "j"})
+     .output_product_suffixes("sum");
+
+   m.observe("verify", verify_sum, concurrency::unlimited)
+     .input_family(product_query{.creator = "input", .layer = "job"},
+                   product_query{.creator = "add", .layer = layer});
+
+Unfold Plus Downstream Nodes: Making Fan-Out Explicit
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A common weakness in migrations is keeping a nested loop inside one producer
+callback. When the real computation is "split this input into many work items,
+process them, and reduce the results," *Phlex* should express that structure
+explicitly as separate nodes.
+
+In *art*, such code often looks like this:
+
+.. code-block:: cpp
+
+   void produce(art::Event& event) override
+   {
+     auto const max_number = event.getProduct<unsigned>(input_token_);
+     unsigned sum = 0;
+     for (unsigned i = 0; i != max_number; ++i) {
+       sum += process_one(i);
+     }
+     event.put(std::make_unique<unsigned>(sum));
+   }
+
+After extraction, there are three separate pieces of work: generate the
+per-item work units, process each one, and reduce them. In *Phlex*:
+
+.. code-block:: cpp
+
+   g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
+     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+     .output_product_suffixes("new_number");
+
+   g.fold("add", add, concurrency::unlimited, "event")
+     .input_family(product_query{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
+     .output_product_suffixes("sum");
+
+A pipeline with per-item processing between the expansion and reduction adds
+a ``transform`` in the middle:
+
+.. code-block:: cpp
+
+   g.unfold<Splitter>("splitter", &Splitter::predicate, &Splitter::unfold,
+                      concurrency::unlimited, "chunk")
+     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "data"})
+     .output_product_suffixes("chunk_data");
+
+   g.transform("process", process_chunk, concurrency::unlimited)
+     .input_family(product_query{.creator = "splitter", .layer = "chunk", .suffix = "chunk_data"})
+     .output_product_suffixes("processed");
+
+   g.fold("reduce", accumulate, concurrency::unlimited, "event")
+     .input_family(product_query{.creator = "process", .layer = "chunk", .suffix = "processed"})
+     .output_product_suffixes("result");
+
+This makes explicit a structure that is often hidden inside one large *art*
+module.
 
 Transitional Binding Issues
----------------------------
+----------------------------
 
-Some migrations will reach a valid intermediate state before every framework feature is available in *Phlex*.
+Some migrations will reach a valid intermediate state before every framework
+feature is available in *Phlex*.
 
-The example in this repository includes several such transitional issues.
+The examples in this repository include several such transitional issues:
 
 * geometry-dependent fields are currently stubbed,
 * a temporary file-based provider is used for comparison-driven testing, and
-* output sorting and printing are present to aid validation against the *art* implementation.
+* output sorting and printing are present to aid validation against the *art*
+  implementation.
 
-These are not failures of the binding.
-They are temporary boundary conditions that should be documented openly and reduced over time.
+These are not failures of the binding. They are temporary boundary conditions
+that should be documented openly and reduced over time.
 
 Phlex Binding Checklist
 -----------------------
 
 Before considering a binding complete, verify the following.
 
-1. The computation has been expressed with the appropriate higher-order
-   function: ``provide``, ``transform``, ``fold``, ``unfold``, or ``observe``.
-2. Event retrieval has been replaced by explicit input declarations.
-3. Configuration has been converted into plain data.
-4. Remaining service-like dependencies are explicit at registration time.
-5. Layer boundaries and accumulation or expansion behavior are explicit.
-6. Transitional issues are documented rather than hidden.
+1. The extracted computation is represented with the appropriate node shape:
+   ``provide``, ``transform``, ``fold``, ``unfold``, or ``observe``.
+2. Product retrieval from callbacks has been replaced by explicit input
+   declarations.
+3. Configuration and helper setup appear in registration code, not inside the
+   extracted algorithm.
+4. Boundary-only work is kept separate from reusable algorithm code.
+5. The chosen layer matches the real scope of the computation: event, subrun,
+   run, job, or a derived lower layer.
+6. A former *art* module that contains several kinds of work has been split
+   into several nodes rather than forced into one.
+7. Transitional limitations are documented rather than hidden inside the
+   node implementation.

@@ -1,60 +1,61 @@
 Algorithm Extraction
 ====================
 
-After framework and domain logic separation, the next step is algorithm extraction.
-The purpose of algorithm extraction is to refactor the code so the algorithm is defined in plain functions or small classes that contain no framework code and can be tested independently.
+After framework and domain logic separation, the next step is algorithm
+extraction. The purpose is to refactor the code so the algorithm is defined in
+plain functions or small classes that contain no framework code and can be
+tested independently.
 
-In practice, this means separating the code into two parts:
-
-* an algorithm part, and
-* a framework-dependent part.
+This means separating the code into two parts:
 
 Algorithm part
-  Contains the domain logic. This code should operate on plain C++ values,
+  Contains the domain logic. It should operate on plain C++ values,
   experiment-specific data structures, and explicitly provided helper objects,
-  without direct use of framework callbacks, event objects, handles, services,
-  or registration machinery.
+  without framework callbacks, event objects, handles, services, or
+  registration machinery.
 
 Framework-dependent part
   Contains configuration lookup, input retrieval, helper construction,
   registration, and output publication.
 
-The algorithm part should answer the question, "what computation is being
-performed?" The framework part should answer, "how is this computation wired
+The algorithm part should answer the question "what computation is being
+performed?" The framework part should answer "how is this computation wired
 into the framework?" A good extraction leaves the algorithm usable in an
 ordinary unit test or standalone driver without bringing in framework code.
 
 This is the key structural change that makes migration to *Phlex* practical.
-Without it, migration remains a translation of framework-specific code.
-With it, migration becomes a matter of binding clear inputs and outputs to a
-well-defined computation.
-The extracted algorithm can then be tested and compared against the original implementation.
-Because many original modules have limited test coverage, extraction should minimize changes to the core logic while moving framework-specific code into a separate boundary layer.
+Without it, migration remains a translation of framework-specific code. With
+it, migration becomes a matter of binding clear inputs and outputs to a
+well-defined computation. The extracted algorithm can then be tested and
+compared against the original implementation.
 
-A successful algorithm extraction produces code with the following properties.
+Because many original modules have limited test coverage, extraction should
+minimize changes to the core logic while moving framework-specific code into a
+separate boundary layer.
+
+A successful extraction produces code with the following properties:
 
 * The algorithm is defined in plain functions or small classes.
 * The algorithm can be called from ordinary C++.
-* The algorithm no longer depends on module callbacks such as ``produce()`` or ``analyze()``.
+* The algorithm does not depend on module callbacks such as ``produce()`` or
+  ``analyze()``.
 * The algorithm contains no direct framework code.
 * Configuration is gathered once and passed explicitly.
 * Input products are passed in as parameters.
 * Output products are returned as values.
-* Framework assumptions are visible and localized.
+* Remaining framework assumptions are visible and localized.
 
 Recommended Extraction Pattern
-------------------------------
-
-A useful pattern is:
+-------------------------------
 
 1. Define a plain configuration structure.
-2. Extract the core computation into a free function or small algorithm class.
+2. Extract the core computation into a free function or small class.
 3. Pass all required inputs explicitly.
 4. Return outputs directly.
 5. Keep framework registration in a separate translation unit.
 
-This pattern is intentionally simple. Most migration efforts become easier when
-there are fewer abstractions, not more.
+This pattern is intentionally simple. Most migration efforts become easier
+when there are fewer abstractions, not more.
 
 The ``gauss_hit_finder`` example defines a plain configuration structure in
 ``find_hits_with_gaussians.hpp``:
@@ -74,11 +75,10 @@ The ``gauss_hit_finder`` example defines a plain configuration structure in
      std::vector<float> pulse_ratio_cuts;
    };
 
-This is a useful migration pattern because the structure can exist independently
-of either *art* or *Phlex*. It is a normal C++ representation of the settings
-the algorithm needs.
+This structure exists independently of either *art* or *Phlex*. It is a
+normal C++ representation of the settings the algorithm needs.
 
-The same example exposes the algorithm through a normal function:
+The algorithm is exposed through a normal function:
 
 .. code-block:: cpp
 
@@ -89,17 +89,17 @@ The same example exposes the algorithm through a normal function:
                             PeakFitterMrqdt const& peak_fitter_mrqdt,
                             HitFilterAlg const& hit_filter_alg);
 
-This signature makes the algorithm boundary obvious:
+This signature makes the algorithm boundary explicit:
 
-* ``cfg`` is immutable configuration.
-* ``wires`` is the explicit input product.
+* ``cfg`` is immutable configuration,
+* ``wires`` is the input product,
 * the helper algorithms are dependencies passed in from outside, and
 * the return value is the output product.
 
 That is the extraction target for many *art* modules: not a callback method,
 but a normal computation with explicit dependencies.
 
-The following concerns usually belong outside the algorithm code.
+The following concerns belong outside the algorithm:
 
 * framework configuration retrieval,
 * event product lookup,
@@ -119,42 +119,11 @@ framework assumptions, as long as those assumptions are visible and localized.
 
 In the ``gauss_hit_finder`` example, comments explicitly mark temporary
 limitations around geometry support and comparison-oriented output. That is a
-reasonable intermediate state. The important point is that such concerns are not
-hidden behind deep framework coupling.
-
-In ``register_find_hits_with_gaussians.cpp``, the *Phlex* side performs the boundary work.
-
-First, configuration is collected:
-
-.. code-block:: cpp
-
-   examples::find_hits_with_gaussians_cfg cfg = {
-     .filter_hits = config.get<bool>("filter_hits"),
-     .long_max_hits_vec = config.get<std::vector<int>>("long_max_hits_vec"),
-     .long_pulse_width_vec = config.get<std::vector<int>>("long_pulse_width_vec"),
-     .max_multi_hit = config.get<int>("max_multi_hit"),
-     .area_method = config.get<int>("area_method"),
-     .area_norms_vec = config.get<std::vector<double>>("area_norms_vec"),
-     .chi2_ndf = config.get<double>("chi2_ndf"),
-     .pulse_height_cuts = config.get<std::vector<float>>("pulse_height_cuts"),
-     .pulse_width_cuts = config.get<std::vector<float>>("pulse_width_cuts"),
-     .pulse_ratio_cuts = config.get<std::vector<float>>("pulse_ratio_cuts")
-   };
-
-Then helper objects are constructed and captured in a lambda. Finally, that
-lambda is registered as the framework transformation.
-
-This split matters because it creates a stable seam in the code.
-
-Once an algorithm is separated from its framework boundary:
-
-* it can be tested more directly,
-* it can be compared against the original implementation more easily,
-* it can be reused in multiple contexts, and
-* the final binding to *Phlex* becomes explicit rather than implicit.
+reasonable intermediate state. The important point is that such concerns are
+not hidden behind deep framework coupling.
 
 Algorithm Extraction Checklist
-------------------------------
+-------------------------------
 
 Before moving on to *Phlex* binding, verify the following.
 
@@ -168,15 +137,15 @@ Before moving on to *Phlex* binding, verify the following.
 Common Extraction Mistakes
 --------------------------
 
-The following patterns usually indicate that algorithm extraction is incomplete.
+The following patterns usually indicate that extraction is incomplete.
 
-* A helper class still reaches into framework state because that was convenient
-  in the original module.
+* A helper class still reaches into framework state because that was
+  convenient in the original module.
 * Configuration parsing remains spread across several helper objects.
 * The algorithm still mutates framework-owned output containers directly.
 * Service access remains hidden inside low-level logic.
-* The new code preserves the old module structure even when the algorithm itself
-  is much simpler.
+* The new code preserves the old module structure even when the algorithm
+  itself is much simpler.
 
-The goal is not to preserve familiar structure.
-It is to expose the real computation cleanly enough that it can be expressed in *Phlex*.
+The goal is not to preserve familiar structure. It is to expose the real
+computation cleanly enough that it can be expressed in *Phlex*.
