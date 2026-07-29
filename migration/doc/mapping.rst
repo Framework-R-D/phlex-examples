@@ -70,7 +70,7 @@ those two concerns are usually cleaner as a ``provide`` node followed by a
 ``transform``
 ^^^^^^^^^^^^^
 
-Use ``transform`` when the callable consumes one or more products and returns
+Use ``transform`` when the algorithm consumes one or more products and returns
 a new product. This is the most common binding for an extracted algorithm that
 used to live in an *art* ``EDProducer``.
 
@@ -87,7 +87,7 @@ Binding rule:
 
 * ``event.getProduct(...)`` becomes ``.input_family(...)`` plus ordinary
   function arguments,
-* ``event.put(...)`` becomes the callable return value plus the output
+* ``event.put(...)`` becomes the algorithm return value plus the output
   declaration, and
 * module members that are configuration or helper setup become lambda capture
   or objects constructed during registration.
@@ -98,20 +98,22 @@ arguments and a returned result, the binding is usually direct.
 ``fold``
 ^^^^^^^^
 
-Use ``fold`` when many lower-layer products must be accumulated into one
+Use ``fold`` when lower-layer products must be accumulated into one
 product at a higher layer. This is the natural binding for code that used to
 spread a reduction across callbacks such as ``beginSubRun()``, ``produce()``,
 and ``endSubRun()``.
 
-The step function shape is:
+The algorithm function shape for a fold is:
 
 .. code-block:: cpp
 
-   void step(State& state, Input const& value);
+   void my_algorithm(Accumulator& accumulator, Input const& value);
 
 Registration shape:
 
 .. code-block:: cpp
+
+   auto add = [](int& sum, int value) { std::atomic_ref(sum) += value; };
 
    g.fold("run_add", add, 0, concurrency::unlimited, "run")
      .input_family(
@@ -123,10 +125,10 @@ Binding rule:
 
 * mutable module members become explicit fold state,
 * reset logic in ``beginSubRun()`` becomes the fold initial value (here ``0``),
-* per-event updates become the fold step function, and
+* per-event updates become the fold function (here ``add``), and
 * final publication in ``endSubRun()`` becomes the fold output product.
 
-The fold target layer is declared directly at the registration site. There is
+The fold target layer is declared directly at the registration site (here ``"run"``). There is
 no hidden state machine spread across callbacks.
 
 ``unfold``
@@ -162,7 +164,7 @@ work is often clearer as an explicit ``unfold``, usually followed by a
 ``observe``
 ^^^^^^^^^^^
 
-Use ``observe`` when the callable consumes products but does not publish a new
+Use ``observe`` when the algorithm consumes products but does not publish a new
 product.
 
 Typical uses:
@@ -467,7 +469,7 @@ Transitional Binding Issues
 Some migrations will reach a valid intermediate state before every framework
 feature is available in *Phlex*.
 
-The examples in this repository include several such transitional issues:
+The examples in the ``phlex-examples`` repository include several such transitional issues:
 
 * geometry-dependent fields are currently stubbed,
 * a temporary file-based provider is used for comparison-driven testing, and
