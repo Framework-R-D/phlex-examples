@@ -305,7 +305,7 @@ framework transitions, and able to depend on other services through
 ``art::ServiceHandle``. That flexibility is also a frequent source of hidden
 dependencies that complicate migration.
 
-The key rule is: ``art::ServiceHandle`` belongs at the framework boundary, not
+The key rule is: ``art::ServiceHandle`` use belongs at the framework boundary, not
 inside reusable algorithm code.
 
 Preparing existing code
@@ -318,8 +318,7 @@ downstream code actually needs:
 * a read-only value or data structure,
 * a helper object that can be passed in explicitly,
 * a side effect such as logging or output production, or
-* a true framework-lifecycle feature that cannot yet be represented another
-  way.
+* a framework-provided service feature that cannot yet be represented another way.
 
 In most cases, the module should retrieve the service-provided data at the
 boundary and pass ordinary C++ inputs into the algorithm. Concretely:
@@ -329,9 +328,9 @@ boundary and pass ordinary C++ inputs into the algorithm. Concretely:
 * retrieve the needed value or object in the module callback,
 * replace hidden service access with explicit function parameters or
   constructor arguments,
-* treat read-only shared state (geometry, calibration constants, channel maps)
-  as future long-lived data inputs rather than global handles, and
-* record any remaining lifecycle-driven service dependencies as explicit
+* treat read-only shared state (geometry, calibration constants, channel maps, etc.)
+  as data inputs rather than global handles, and
+* record any remaining service dependencies as explicit
   migration-design items.
 
 The most common problematic pattern is an algorithm that constructs a
@@ -354,8 +353,8 @@ The most common problematic pattern is an algorithm that constructs a
      e.put(std::make_unique<Tracks>(std::move(tracks)), "GoodTracks");
    }
 
-This couples the algorithm directly to the framework, hides the calibration
-data as an implicit dependency, and makes provenance incomplete.
+This couples the algorithm directly to the framework and hides the calibration
+data as an implicit dependency.
 
 The fix is to retrieve the service data at the module boundary and pass it as
 an explicit argument:
@@ -377,9 +376,8 @@ an explicit argument:
      e.put(std::make_unique<Tracks>(std::move(tracks)), "GoodTracks");
    }
 
-After this change the algorithm is framework-independent, the dependency on
-the calibration offset is explicit, and the algorithm itself holds no framework
-state.
+After this change the algorithm is framework-independent, and the dependency on
+the calibration offset is explicit.
 
 This is the intended separation shape even when the *art* service cannot yet
 be removed. Once the codebase uses *Phlex*, the same algorithm function can
@@ -397,8 +395,8 @@ When completing this work, check that:
 * any service dependencies that genuinely cannot be removed are recorded as
   explicit migration-design items.
 
-When to use a service
-^^^^^^^^^^^^^^^^^^^^^
+When to introduce a new service
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The migration guidance above is for code that already uses services. If you
 are considering introducing a new service, first ask whether the capability
@@ -407,10 +405,13 @@ really needs to be modeled as one.
 Many common uses do not require a service:
 
 * **Message logging.** Standard logging libraries (e.g., ``spdlog``,
-  ``std::cerr``) are ordinary C++ and need no framework wrapper.
+  ``std::cerr``) are ordinary C++ and need no framework wrapper.  Phlex
+  currently uses ``spdlog``, although a framework-supported logging solution will be formally decided on later.
 * **Profiling and monitoring.** Facilities such as ``TimeTracker`` and
   ``MemoryTracker`` are infrastructure concerns provided by the framework
   runtime; they do not need to expose a service handle to user code.
+  Phlex does not currently provide profiling and monitoring facilities, yet
+  they will likely be expressed as natively provided framework facilities rather than a user-facing service.
 * **Global-state wrappers.** Objects like ``TFileService`` manage global state
   in external libraries. That is a real need, but the management object can be
   provided as a constructor argument or explicit parameter rather than through
@@ -421,21 +422,15 @@ Many common uses do not require a service:
   algorithms through the normal dataflow, not through a global handle.
 * **Conditions and database-derived data.** Calibration offsets, channel maps,
   and similar data that vary by run or time interval are exactly what
-  framework-managed data families are for. Rather than wrapping a database
+  framework-managed data layers are for. Rather than wrapping a database
   client in a service, the data should be fetched by a dedicated algorithm and
-  placed into the appropriate data family so downstream algorithms receive it
-  as an explicit input.
+  placed into the appropriate data layer so downstream algorithms receive it
+  as an explicit input.  Currently, Phlex supports conditions data only through
+  the same data layers that are used to drive the framework job.  Support for
+  more sophisticated conditions access is planned for future releases.
 
-Some service uses are harder to eliminate before a full migration and may
-remain at the framework boundary during a staged separation:
-
-* The service genuinely needs the *art* lifecycle (e.g. it registers callbacks
-  for run, subrun, or job transitions not accessible to a plain module).
-* The service is part of a stable public interface that other packages depend
-  on and cannot be changed independently.
-* The service enforces singleton or ordering constraints that are a real
-  framework requirement, not merely a convenience.
-
-Even then, the separation goal is the same: keep the service call confined to
-the module boundary and pass whatever the service provides as an ordinary C++
-argument to the algorithm.
+Some service uses are harder to eliminate before a full migration has been
+completed and may remain at the framework boundary during a staged separation.
+Even in such cases, the separation goal is the same: keep service calls confined
+to the module boundary and pass whatever the service provides as an ordinary
+C++ argument to the algorithm.
