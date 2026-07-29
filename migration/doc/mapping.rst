@@ -299,7 +299,7 @@ The extracted hit-finding algorithm then binds as a transform:
 
    m.transform("find_hits_with_gaussians",
                [cfg = std::move(cfg),
-                cand_hits = std::move(cand_hit_standard_vec),
+                cand_hit_standard_vec = std::move(cand_hit_standard_vec),
                 peak_fitter_mrqdt = std::move(peak_fitter_mrqdt),
                 hit_filter_alg = std::move(hit_filter_alg)]
                (std::vector<recob::Wire> const& wires) {

@@ -16,42 +16,35 @@ convenient.
 For each *art* concept that appears in a code base:
 
 1. determine whether the concept is required to preserve the module's
-   framework-visible output and identity, or whether it is only an
+   framework-visible output, or whether it is only an
    implementation convenience,
 2. remove it where it is only being used for convenience,
 3. isolate it in framework-boundary code where it is still required, and
 4. convert the algorithm code to ordinary C++ inputs and outputs.
-
-Separation is successful when:
-
-* framework-specific access patterns are pushed toward the top-level boundary,
-* hidden dependencies become explicit,
-* data flow is easier to see,
-* ownership is easier to reason about,
-* event-scoped state is localized, and
-* algorithm code starts to look like ordinary C++.
 
 Cross-Cutting Rules
 -------------------
 
 A few separation rules apply across all *art* concepts:
 
-* keep framework retrieval and framework-owned identity at the module boundary,
+* keep framework API use at the module boundary,
 * do not cache event-scoped objects across events,
 * prefer explicit inputs over implicit framework access,
 * prefer ordinary C++ containers and references in helper code, and
 * preserve *art*-specific types only where persisted behavior requires them.
 
+In addition to preparing algorithm code for migration, applying these rules makes the data flow is easier to see and object ownership easier to reason about.
+
 ``art::Ptr`` and Pointer-Like Access
 ------------------------------------
 
-``art::Ptr`` combines object access with framework identity and provenance.
+``art::Ptr`` combines object access with framework metadata.
 That is sometimes required, especially when a module writes products whose
-meaning depends on persisted cross-product identity. In many code paths,
+meaning depends on persisted data-product references. In many code paths,
 however, ``art::Ptr`` is only being used as a convenient way to refer to an
 object that is already present in a collection.
 
-The key distinction is whether the code really needs framework identity.
+The key distinction is whether the code really needs persistent references.
 ``art::Ptr`` can usually be removed when the code only needs:
 
 * read-only object access,
@@ -63,12 +56,12 @@ As a practical rule, a module typically needs ``art::Ptr`` only when it places
 an ``art::Ptr``-based product into the event, for example ``art::Assns``,
 ``art::PtrVector``, ``art::PtrMaker``-produced pointers, or a
 ``std::vector<art::Ptr<T>>`` written to the event. If provenance or persisted
-identity is genuinely required, or if association chaining depends on
+references are genuinely required, or if association chaining depends on
 ``art::Ptr<T>::key()``, then ``art::Ptr`` may need to remain at the framework
 boundary during an intermediate migration step.
 
 The separation work is to inventory ``art::Ptr`` and ``fill_ptr_vector``
-usage, separate persisted-identity cases from convenience usage, and replace
+usage, separate persisted-reference cases from convenience usage, and replace
 the convenience cases with ordinary data access. In helper code that usually
 means passing object values, references, indices, a ``std::vector<T> const&``,
 a ``std::vector<T const*> const&``, or a lookup table built at the boundary.
@@ -140,8 +133,8 @@ identifier. Do not substitute pointer arithmetic for ``.key()``.
 
 When passing collections into helper code, prefer ``std::vector<T> const&``
 when the original product can be passed, ``std::vector<T const*> const&`` for
-a filtered subset, and ``std::vector<art::Ptr<T>>`` only when identity
-semantics still matter.
+a filtered subset, and ``std::vector<art::Ptr<T>>`` only when persisted references
+are needed.
 
 When ``art::Ptr`` usage disappears, related includes often disappear as well,
 including ``canvas/Persistency/Common/Ptr.h``,
@@ -298,7 +291,7 @@ code wherever possible.
 AI tools can help inventory helpers such as ``FindOneP``, ``FindManyP``, and
 ``art::Assns`` construction and distinguish navigation-only use from
 persisted-output use. Review those changes carefully when the code builds new
-associations or when helper logic depends on stable framework identity rather
+associations or when helper logic depends on persistent references rather
 than simple object access.
 
 Services
