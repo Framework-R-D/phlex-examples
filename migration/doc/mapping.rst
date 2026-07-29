@@ -51,14 +51,15 @@ Registration shape:
 
 .. code-block:: cpp
 
-   m.provide("provide_i", [](data_cell_index const& id) -> int { return id.number(); })
-     .output_product({.creator = "input", .layer = layer, .suffix = "i"});
+   s.provide("provide_i", [](data_cell_index const& id) -> int { return id.number(); })
+     .output_product("input", "i", layer);
 
    s.provide("provide_geometry",
-             [geometry_name](phlex::data_cell_index const& /* job */) -> examples::geometry {
+             [geometry_name](phlex::data_cell_index const& /* job */) -> examples::geometry
+             {
                return examples::geometry{geometry_name};
              })
-     .output_product({.creator = "input", .layer = "job", .suffix = "geometry"});
+     .output_product("input", "geometry", "job");
 
 *art* code that reaches outside the normal event-product flow to obtain input
 and makes it available to later computations often becomes a ``provide`` node.
@@ -78,8 +79,8 @@ Registration shape:
 .. code-block:: cpp
 
    m.transform("add", examples::add, concurrency::unlimited)
-     .input_family(product_query{.creator = "input", .layer = layer, .suffix = "i"},
-                   product_query{.creator = "input", .layer = layer, .suffix = "j"})
+     .input_family(product_selector{.creator = "input", .layer = layer, .suffix = "i"},
+                   product_selector{.creator = "input", .layer = layer, .suffix = "j"})
      .output_product_suffixes("sum");
 
 Binding rule:
@@ -112,14 +113,16 @@ Registration shape:
 
 .. code-block:: cpp
 
-   g.fold("run_add", add, concurrency::unlimited, "run")
-     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "number"})
+   g.fold("run_add", add, 0, concurrency::unlimited, "run")
+     .input_family(
+       product_selector{.creator = "input", .layer = "event", .suffix = "number"}
+     )
      .output_product_suffixes("run_sum");
 
 Binding rule:
 
 * mutable module members become explicit fold state,
-* reset logic in ``beginSubRun()`` becomes the fold initial value,
+* reset logic in ``beginSubRun()`` becomes the fold initial value (here ``0``),
 * per-event updates become the fold step function, and
 * final publication in ``endSubRun()`` becomes the fold output product.
 
@@ -147,7 +150,9 @@ Registration shape:
 .. code-block:: cpp
 
    g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
-     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+     .input_family(
+       product_selector{.creator = "input", .layer = "event", .suffix = "max_number"}
+     )
      .output_product_suffixes("new_number");
 
 *art* code that manually expands one product into many downstream pieces of
@@ -171,8 +176,8 @@ Registration shape:
 .. code-block:: cpp
 
    m.observe("verify", verify_sum, concurrency::unlimited)
-     .input_family(product_query{.creator = "input", .layer = "job"},
-                   product_query{.creator = "add", .layer = layer});
+     .input_family(product_selector{.creator = "input", .layer = "job"},
+                   product_selector{.creator = "add", .layer = layer});
 
 *art* analyzers, validation-only code, and producer-side checks that do not
 emit new products often become ``observe`` nodes.
@@ -229,7 +234,7 @@ An equivalent *art* module:
    class PowerProducer : public art::EDProducer {
    public:
      explicit PowerProducer(fhicl::ParameterSet const& pset)
-       : input_token_{consumes<int>(pset.get<art::InputTag>("input_tag"))}
+       : input_token_{consumes<int>(pset.get<art::InputTag>("input"))}
        , exponent_{pset.get<unsigned>("exponent")}
      {
        produces<int>();
@@ -250,12 +255,15 @@ In *Phlex*, the extracted algorithm binds directly as a transform:
 
 .. code-block:: cpp
 
-   PHLEX_REGISTER_ALGORITHMS(m, pset) {
+   PHLEX_REGISTER_ALGORITHMS(m, pset)
+   {
+     using namespace phlex;
+
      auto f = [exp = pset.get<unsigned>("exponent")](int x) {
        return power(x, exp);
      };
      m.transform("Power", f, concurrency::unlimited)
-       .input_family(pset.get<input_tag>("input_tag"));
+       .input_family(pset.get<product_selector>("input"));
    }
 
 The callback protocol disappears. The computation appears directly as a
@@ -273,14 +281,17 @@ and makes it available as a graph product:
 
 .. code-block:: cpp
 
-   m.provide("provide_wires", [](data_cell_index const& id) -> std::vector<recob::Wire> {
-     std::string filename = "wires_" + std::to_string(fileCounter.fetch_add(1)) + ".dat";
-     if (auto wires = read_wires_from_file(filename)) {
-       return *wires;
+   s.provide(
+     "provide_wires",
+     [](data_cell_index const& id) -> std::vector<recob::Wire> {
+       auto const filename = std::format("wires_{}.dat", id.number());
+       if (auto wires = read_wires_from_file(filename)) {
+         return *wires;
+       }
+       throw std::runtime_error("Failure while reading from file: " + filename);
      }
-     throw std::runtime_error("Failure while reading from file: " + filename);
-   })
-   .output_product(product_query{.creator = "wires", .layer = layer, .suffix = ""});
+    )
+    .output_product("wires", "", layer);
 
 The extracted hit-finding algorithm then binds as a transform:
 
@@ -288,7 +299,7 @@ The extracted hit-finding algorithm then binds as a transform:
 
    m.transform("find_hits_with_gaussians",
                [cfg = std::move(cfg),
-                cand_hit_standard_vec = std::move(cand_hit_standard_vec),
+                cand_hits = std::move(cand_hit_standard_vec),
                 peak_fitter_mrqdt = std::move(peak_fitter_mrqdt),
                 hit_filter_alg = std::move(hit_filter_alg)]
                (std::vector<recob::Wire> const& wires) {
@@ -297,9 +308,9 @@ The extracted hit-finding algorithm then binds as a transform:
                                                             cand_hit_standard_vec,
                                                             *peak_fitter_mrqdt,
                                                             *hit_filter_alg);
-              },
+               },
                concurrency::unlimited)
-     .input_family(product_query{.creator = "wires", .layer = layer, .suffix = ""})
+     .input_family(product_selector{.creator = "wires", .layer = layer, .suffix = ""})
      .output_product_suffixes("hits");
 
 The split is explicit:
@@ -327,7 +338,7 @@ A classic subrun accumulator in *art*:
    class SumAcrossSubRun : public art::EDProducer {
    public:
      explicit SumAcrossSubRun(fhicl::ParameterSet const& pset)
-       : input_token_{consumes<int>(pset.get<art::InputTag>("input_tag"))}
+       : input_token_{consumes<int>(pset.get<art::InputTag>("input"))}
      {
        produces<int, art::InSubRun>();
      }
@@ -353,9 +364,12 @@ In *Phlex*, the same step function binds as a fold:
 
 .. code-block:: cpp
 
-   PHLEX_REGISTER_ALGORITHMS(m, pset) {
+   PHLEX_REGISTER_ALGORITHMS(m, pset)
+   {
+     using namespace phlex;
+
      m.fold("MySum", accumulate, 0, "subrun", concurrency::serial)
-       .input_family(pset.get<input_tag>("input_tag"));
+       .input_family(pset.get<product_selector>("input"));
    }
 
 The mapping is direct:
@@ -375,13 +389,13 @@ separate unrelated analyzer callback.
 .. code-block:: cpp
 
    m.transform("add", examples::add, concurrency::unlimited)
-     .input_family(product_query{.creator = "input", .layer = layer, .suffix = "i"},
-                   product_query{.creator = "input", .layer = layer, .suffix = "j"})
+     .input_family(product_selector{.creator = "input", .layer = layer, .suffix = "i"},
+                   product_selector{.creator = "input", .layer = layer, .suffix = "j"})
      .output_product_suffixes("sum");
 
    m.observe("verify", verify_sum, concurrency::unlimited)
-     .input_family(product_query{.creator = "input", .layer = "job"},
-                   product_query{.creator = "add", .layer = layer});
+     .input_family(product_selector{.creator = "input", .layer = "job"},
+                   product_selector{.creator = "add", .layer = layer});
 
 Unfold Plus Downstream Nodes: Making Fan-Out Explicit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -411,11 +425,15 @@ per-item work units, process each one, and reduce them. In *Phlex*:
 .. code-block:: cpp
 
    g.unfold<iota>("iota", &iota::predicate, &iota::unfold, concurrency::unlimited, "lower1")
-     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "max_number"})
+     .input_family(
+       product_selector{.creator = "input", .layer = "event", .suffix = "max_number"}
+     )
      .output_product_suffixes("new_number");
 
    g.fold("add", add, concurrency::unlimited, "event")
-     .input_family(product_query{.creator = "iota", .layer = "lower1", .suffix = "new_number"})
+     .input_family(
+       product_selector{.creator = "iota", .layer = "lower1", .suffix = "new_number"}
+     )
      .output_product_suffixes("sum");
 
 A pipeline with per-item processing between the expansion and reduction adds
@@ -423,17 +441,21 @@ a ``transform`` in the middle:
 
 .. code-block:: cpp
 
-   g.unfold<Splitter>("splitter", &Splitter::predicate, &Splitter::unfold,
-                      concurrency::unlimited, "chunk")
-     .input_family(product_query{.creator = "input", .layer = "event", .suffix = "data"})
+   g.unfold<Splitter>(
+      "splitter", &Splitter::predicate, &Splitter::unfold, concurrency::unlimited, "chunk"
+     )
+     .input_family(product_selector{.creator = "input", .layer = "event", .suffix = "data"})
      .output_product_suffixes("chunk_data");
 
    g.transform("process", process_chunk, concurrency::unlimited)
-     .input_family(product_query{.creator = "splitter", .layer = "chunk", .suffix = "chunk_data"})
+     .input_family(
+       product_selector{.creator = "splitter", .layer = "chunk", .suffix = "chunk_data"}
+     )
      .output_product_suffixes("processed");
 
    g.fold("reduce", accumulate, concurrency::unlimited, "event")
-     .input_family(product_query{.creator = "process", .layer = "chunk", .suffix = "processed"})
+     .input_family(
+       product_selector{.creator = "process", .layer = "chunk", .suffix = "processed"})
      .output_product_suffixes("result");
 
 This makes explicit a structure that is often hidden inside one large *art*

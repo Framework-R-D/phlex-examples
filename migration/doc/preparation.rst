@@ -222,7 +222,8 @@ associations):
    evt.getByLabel(fCalDataModuleLabel, wireVecHandle);
 
    // After
-   auto const wireVecHandle = evt.getValidHandle<std::vector<recob::Wire>>(fCalDataModuleLabel);
+   auto const wireVecHandle =
+     evt.getValidHandle<std::vector<recob::Wire>>(fCalDataModuleLabel);
    // art::Ptr<recob::Wire>(wireVecHandle, i) still works
 
 When the product may legitimately be absent:

@@ -83,11 +83,13 @@ The algorithm is exposed through a normal function:
 .. code-block:: cpp
 
    std::vector<recob::Hit>
-   find_hits_with_gaussians(find_hits_with_gaussians_cfg const& cfg,
-                            std::vector<recob::Wire> const& wires,
-                            std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
-                            PeakFitterMrqdt const& peak_fitter_mrqdt,
-                            HitFilterAlg const& hit_filter_alg);
+   find_hits_with_gaussians(
+     find_hits_with_gaussians_cfg const& cfg,
+     std::vector<recob::Wire> const& wires,
+     std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
+     PeakFitterMrqdt const& peak_fitter_mrqdt,
+     HitFilterAlg const& hit_filter_alg
+  );
 
 This signature makes the algorithm boundary explicit:
 

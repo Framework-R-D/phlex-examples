@@ -70,3 +70,5 @@ latex_documents = [("index",
                     author,
                     "manual",
                     False)]
+
+latex_table_style = ["booktabs"]
