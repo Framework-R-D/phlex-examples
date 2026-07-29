@@ -405,12 +405,12 @@ really needs to be modeled as one.
 Many common uses do not require a service:
 
 * **Message logging.** Standard logging libraries (e.g., ``spdlog``,
-  ``std::cerr``) are ordinary C++ and need no framework wrapper.  Phlex
+  ``std::cerr``) are ordinary C++ and need no framework wrapper.  *Phlex*
   currently uses ``spdlog``, although a framework-supported logging solution will be formally decided on later.
 * **Profiling and monitoring.** Facilities such as ``TimeTracker`` and
   ``MemoryTracker`` are infrastructure concerns provided by the framework
   runtime; they do not need to expose a service handle to user code.
-  Phlex does not currently provide profiling and monitoring facilities, yet
+  *Phlex* does not currently provide profiling and monitoring facilities, yet
   they will likely be expressed as natively provided framework facilities rather than a user-facing service.
 * **Global-state wrappers.** Objects like ``TFileService`` manage global state
   in external libraries. That is a real need, but the management object can be
@@ -418,14 +418,14 @@ Many common uses do not require a service:
   ``art::ServiceHandle``.
 * **Shared read-only objects (e.g., Geometry).** Objects that are read-only
   after initialization are not fundamentally services. In *Phlex*, such objects
-  are data products belonging to a long-lived data family and are provided to
+  are data products belonging to a long-lived data layer and are provided to
   algorithms through the normal dataflow, not through a global handle.
 * **Conditions and database-derived data.** Calibration offsets, channel maps,
   and similar data that vary by run or time interval are exactly what
   framework-managed data layers are for. Rather than wrapping a database
   client in a service, the data should be fetched by a dedicated algorithm and
   placed into the appropriate data layer so downstream algorithms receive it
-  as an explicit input.  Currently, Phlex supports conditions data only through
+  as an explicit input.  Currently, *Phlex* supports conditions data only through
   the same data layers that are used to drive the framework job.  Support for
   more sophisticated conditions access is planned for future releases.
 

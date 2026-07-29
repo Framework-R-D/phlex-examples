@@ -54,9 +54,6 @@ Recommended Extraction Pattern
 4. Return outputs directly.
 5. Keep framework registration in a separate translation unit.
 
-This pattern is intentionally simple. Most migration efforts become easier
-when there are fewer abstractions, not more.
-
 The ``gauss_hit_finder`` example defines a plain configuration structure in
 ``find_hits_with_gaussians.hpp``:
 
@@ -75,21 +72,22 @@ The ``gauss_hit_finder`` example defines a plain configuration structure in
      std::vector<float> pulse_ratio_cuts;
    };
 
-This structure exists independently of either *art* or *Phlex*. It is a
-normal C++ representation of the settings the algorithm needs.
+This structure was motivated by the configuration parameters used in the existing ``GausHitFinder_module.cc`` *art* module in ``larreco``. Note that it is independent
+of either *art* or *Phlex*---it is a normal C++ representation of the configuration the
+algorithm needs.
 
 The algorithm is exposed through a normal function:
 
 .. code-block:: cpp
 
-   std::vector<recob::Hit>
-   find_hits_with_gaussians(
-     find_hits_with_gaussians_cfg const& cfg,
-     std::vector<recob::Wire> const& wires,
-     std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
-     PeakFitterMrqdt const& peak_fitter_mrqdt,
-     HitFilterAlg const& hit_filter_alg
-  );
+   using Hits = std::vector<recob::Hit>;
+   using CandHitStandardPtr = std::shared_ptr<CandHitStandard>;
+
+   Hits find_hits_with_gaussians(find_hits_with_gaussians_cfg const& cfg,
+                                 std::vector<recob::Wire> const& wires,
+                                 std::vector<CandHitStandardPtr> const& cand_hit_standard,
+                                 PeakFitterMrqdt const& peak_fitter_mrqdt,
+                                 HitFilterAlg const& hit_filter_alg);
 
 This signature makes the algorithm boundary explicit:
 
@@ -133,8 +131,7 @@ Before moving on to *Phlex* binding, verify the following.
 2. Are all real inputs represented in the function signature or constructor?
 3. Are all outputs represented as return values or explicit output objects?
 4. Is configuration collected outside the algorithm?
-5. Is framework I/O isolated near the registration boundary?
-6. Are remaining framework assumptions documented as transitional issues?
+5. Are remaining framework assumptions documented as transitional issues?
 
 Common Extraction Mistakes
 --------------------------
@@ -144,7 +141,6 @@ The following patterns usually indicate that extraction is incomplete.
 * A helper class still reaches into framework state because that was
   convenient in the original module.
 * Configuration parsing remains spread across several helper objects.
-* The algorithm still mutates framework-owned output containers directly.
 * Service access remains hidden inside low-level logic.
 * The new code preserves the old module structure even when the algorithm
   itself is much simpler.
