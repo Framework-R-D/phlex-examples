@@ -7,13 +7,13 @@
 
 #include <algorithm>
 #include <fmt/os.h>
-#include <string>
 
 #include "print_hits_to_file.hpp"
 
 namespace examples {
 
-  void print_hits_to_file(int cell_id,
+  void print_hits_to_file(std::string const& filename_prefix,
+                          int cell_id,
                           std::vector<recob::Hit> const& input_hits) {
 
     std::vector<recob::Hit> hits = input_hits;
@@ -36,9 +36,8 @@ namespace examples {
       return a.EndTick() < b.EndTick();
     });
 
-    std::string filename = std::string("hits_") +
+    std::string filename = filename_prefix + "_" +
                            std::to_string(cell_id) + ".txt";
-
     auto file = fmt::output_file(filename);
     file.print("Contents of a std::vector<recob::Hit>\n\n");
 
@@ -73,5 +72,6 @@ namespace examples {
       //     hit.SignalType()
       //     hit.WireID()
     }
+    file.close();
   }
 }

@@ -1,4 +1,4 @@
-// See REAMDME.md for some general comments about this example.
+// See README.md for some general comments about this example.
 
 #include <algorithm>
 #include <atomic>
@@ -45,7 +45,7 @@ namespace examples {
   {
     // Probably eventually delete the following line
     // (or convert to logging utility)
-    std::cout << "Finding hits with Gaussians." << std::endl;
+    std::cout << "Finding hits with Gaussians (design 1)." << std::endl;
   }
 
   unfold_wire_vector_design1::const_iterator unfold_wire_vector_design1::initial_value() const
@@ -59,6 +59,9 @@ namespace examples {
   unfold_wire_vector_design1::unfold(const_iterator current) const
   {
     recob::Wire const& wire = *current;
+    // Note this copies the Wire object.
+    // We discussed this in May and did it intentionally.
+    // We may revisit this decision later.
     return std::make_pair(++current, wire);
   };
 

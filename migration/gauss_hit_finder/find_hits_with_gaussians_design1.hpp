@@ -1,7 +1,7 @@
 #ifndef PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN1_HPP
 #define PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN1_HPP
 
-// See REAMDME.md for some general comments about this example.
+// See README.md for some general comments about this example.
 
 ////////////////////////////////////////////////////////////////////////
 //

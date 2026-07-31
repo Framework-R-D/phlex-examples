@@ -7,18 +7,21 @@
 #include <utility>
 #include <vector>
 
+#include "phlex/concurrency.hpp"
+#include "phlex/configuration.hpp"
+#include "phlex/core/product_selector.hpp"
+#include "phlex/module.hpp"
+
 #include "copied_from_larsoft_minor_edits/CandHitStandard.h"
 #include "copied_from_larsoft_minor_edits/HitFilterAlg.h"
 #include "copied_from_larsoft_minor_edits/PeakFitterMrqdt.h"
 #include "copied_from_larsoft_minor_edits/Wire.h"
-
-#include "phlex/module.hpp"
-#include "find_hits_with_gaussians.hpp"
+#include "find_hits_with_gaussians_design2.hpp"
 
 using namespace phlex;
 
 namespace {
-  examples::find_hits_with_gaussians_cfg main_cfg(configuration config) {
+  examples::find_hits_with_gaussians_design2_cfg main_cfg(configuration config) {
     return {
       .filter_hits = config.get<bool>("filter_hits"),
       .long_max_hits_vec = config.get<std::vector<int>>("long_max_hits_vec"),
@@ -77,21 +80,57 @@ namespace {
 
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
-  auto const layer = config.get<std::string>("layer");
+  auto const layer_vector_of_wires = config.get<std::string>("layer_vector_of_wires");
+  auto const layer_wire = config.get<std::string>("layer_wire");
+  auto const layer_roi = config.get<std::string>("layer_roi");
 
-  m.transform("find_hits_with_gaussians",
+  // ---------------------------------------------------------------
+  // Outer unfold:  spill -> wire
+  // ---------------------------------------------------------------
+  m.unfold<examples::unfold_wire_vector_design2>("unfold_wire_vector_design2",
+                                                 &examples::unfold_wire_vector_design2::predicate,
+                                                 &examples::unfold_wire_vector_design2::unfold,
+                                                 layer_wire,
+                                                 concurrency::unlimited)
+    .input_family(product_selector{.creator = "wires", .layer = layer_vector_of_wires, .suffix = ""});
+
+  // ---------------------------------------------------------------
+  // Inner unfold:  wire -> roi
+  // ---------------------------------------------------------------
+  m.unfold<examples::unfold_wire_design2>("unfold_wire_design2",
+                                              &examples::unfold_wire_design2::predicate,
+                                              &examples::unfold_wire_design2::unfold,
+                                              layer_roi,
+                                              concurrency::unlimited)
+    .input_family(product_selector{.creator = "unfold_wire_vector_design2", .layer = layer_wire});
+
+  // ---------------------------------------------------------------
+  // Transform:  processes a single ROI
+  // ---------------------------------------------------------------
+  m.transform("find_hits_with_gaussians_design2",
               [cfg = main_cfg(config),
                cand_hit_standard_vec = make_cand_hit_standard_vec(config),
                peak_fitter_mrqdt = make_peak_fitter_mrqdt(config),
                hit_filter_alg = make_hit_filter_alg(config)]
-              (std::vector<recob::Wire> const& wires) {
-                 return examples::find_hits_with_gaussians(cfg,
-                                                           wires,
-                                                           cand_hit_standard_vec,
-                                                           *peak_fitter_mrqdt,
-                                                           *hit_filter_alg);
+              (examples::wire_roi_data const& roi_data) {
+                 return examples::find_hits_with_gaussians_design2(cfg,
+                                                                   roi_data,
+                                                                   cand_hit_standard_vec,
+                                                                   *peak_fitter_mrqdt,
+                                                                   *hit_filter_alg);
              },
               concurrency::unlimited)
-    .input_family(product_selector{.creator = "wires", .layer = layer, .suffix = ""})
-    .output_product_suffixes("hits");
+    .input_family(product_selector{.creator = "unfold_wire_design2", .layer = layer_roi});
+
+  // ---------------------------------------------------------------
+  // Inner fold:  roi -> wire  (collects hits from ROIs of one wire)
+  // ---------------------------------------------------------------
+  m.fold("fold_roi_hits_design2", examples::fold_roi_hits_design2, concurrency::serial, layer_wire)
+    .input_family(product_selector{.creator = "find_hits_with_gaussians_design2", .layer = layer_roi});
+
+  // ---------------------------------------------------------------
+  // Outer fold:  wire -> spill  (collects hits from all wires)
+  // ---------------------------------------------------------------
+  m.fold("fold_hits_into_vector_design2", examples::fold_hits_into_vector_design2, concurrency::serial, layer_vector_of_wires)
+    .input_family(product_selector{.creator = "fold_roi_hits_design2", .layer = layer_wire});
 }

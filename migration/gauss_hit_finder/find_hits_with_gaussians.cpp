@@ -1,4 +1,4 @@
-// See REAMDME.md for some general comments about this example.
+// See README.md for some general comments about this example.
 
 #include <algorithm>
 #include <cmath>

@@ -62,6 +62,18 @@ iteration is replaced by that sequence of algorithms.
 3. register_find_hits_with_gaussians_design1.cpp
 4. test_find_hits_with_gaussians_design1.jsonnet
 
+These files extend design 1 by also replacing the inner
+parallel_for (over ROIs) with a second unfold-transform-fold.
+The resulting layer hierarchy is:
+spill -> wire -> roi. A `wire_roi_data` struct bundles
+a single ROI (`datarange_t`) with the wire-level context
+(channel, view) needed by the transform.
+
+1. find_hits_with_gaussians_design2.hpp
+2. find_hits_with_gaussians_design2.cpp
+3. register_find_hits_with_gaussians_design2.cpp
+4. test_find_hits_with_gaussians_design2.jsonnet
+
 We plan to implement more prototype migrations
 of GausHitFinder in the future to explore the
 possibilities and execute tests.
@@ -114,10 +126,11 @@ Getting the single transform to work was a good first step.
 
 The next thing we implemented was replacing the
 outer `parallel_for` with an `unfold`, `transform`, and `fold`
-sequence of algorithms. In the future, we plan to create other
-versions pushing the division into separate algorithms to lower
-levels. Then we plan to run tests and compare the different
-versions.
+sequence of algorithms (design 1). After that, we created
+design 2 which also replaces the inner `parallel_for` (over ROIs)
+with a second `unfold`, `transform`, and `fold` sequence,
+resulting in a three-layer hierarchy (spill -> wire -> roi).
+We plan to run tests and compare the different versions.
 
 `Phlex` will not support the `Tools` feature that existed in
 `art`. One possibility is that algorithm nodes scheduled
@@ -223,7 +236,7 @@ Two output data members of `Hit` were ignored because they depend on the `Geomet
     geo::WireID fWireID;        ///< WireID for the hit (Cryostat, TPC, Plane, Wire)
 ```
 
-This was done for both `phlex` versions of GausHitFinder. The output of both are identical with each other and with the `art` version.
+This was done for all `phlex` versions of GausHitFinder. The output of all versions are identical with each other and with the `art` version.
 
 The `phlex` process was run with multithreading and that causes the order of `Hit` objects to vary from one execution to the next and also the order of events to vary. In the comparison the `Hit` objects were sorted and we had to be careful to compare matching events.
 
