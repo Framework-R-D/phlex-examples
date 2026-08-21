@@ -157,10 +157,6 @@ add_test(NAME GausHitFinderTestDesign2
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties(GausHitFinderTestDesign2 PROPERTIES FIXTURES_SETUP GausHitFinderDesign2Fixture)
 
-# Temporarily expect design2 tests to fail due to a bug in phlex
-# (see phlex pull request 540). Remove this once the fix is merged.
-set_tests_properties(GausHitFinderTestDesign2 PROPERTIES WILL_FAIL TRUE)
-
 # The reference files were generated on a Linux machine
 # so we expect identical output on Linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -199,12 +195,6 @@ else()
     set_tests_properties(GausHitFinderCompareDesign2_${n} PROPERTIES FIXTURES_REQUIRED GausHitFinderDesign2Fixture)
   endforeach()
 endif()
-
-# Temporarily expect design2 comparison tests to fail due to a bug in phlex
-# (see phlex pull request 540). Remove this once the fix is merged.
-foreach(n RANGE 4)
-  set_tests_properties(GausHitFinderCompareDesign2_${n} PROPERTIES WILL_FAIL TRUE)
-endforeach()
 
 # We need to include the library directory for 'generate_layers' on the PHLEX_PLUGIN_PATH.
 # Unfortunately, phlex does not have a target that easily does this (plugins are not intended
