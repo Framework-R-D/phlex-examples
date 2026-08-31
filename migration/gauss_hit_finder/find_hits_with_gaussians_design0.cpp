@@ -14,7 +14,7 @@
 #include "tbb/concurrent_vector.h"
 #include "tbb/parallel_for.h"
 
-#include "find_hits_with_gaussians.hpp"
+#include "find_hits_with_gaussians_design0.hpp"
 #include "copied_from_larsoft_minor_edits/ICandidateHitFinder.h"
 
 namespace {
@@ -33,7 +33,7 @@ namespace {
 }
 
 namespace examples {
-  std::vector<recob::Hit> find_hits_with_gaussians(find_hits_with_gaussians_cfg const& cfg,
+  std::vector<recob::Hit> find_hits_with_gaussians_design0(find_hits_with_gaussians_design0_cfg const& cfg,
                                                    std::vector<recob::Wire> const& wires,
                                                    std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
                                                    PeakFitterMrqdt const& peak_fitter_mrqdt,
@@ -452,5 +452,5 @@ namespace examples {
     }
 
     return hits;
-  } // End of find_hits_with_gaussians
+  } // End of find_hits_with_gaussians_design0
 } // end of examples namespace

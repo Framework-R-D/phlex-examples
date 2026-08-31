@@ -1,8 +1,10 @@
-#ifndef PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN2_HPP
-#define PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN2_HPP
+#ifndef PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN3_HPP
+#define PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN3_HPP
 
-// Design2 extends design1 by also replacing the inner parallel_for
-// (over ROIs) with a second unfold-transform-fold.
+// Design3 extends design2 by extracting the candidate-hit-finding step
+// (cand_hit_standard) into a separate transform that runs after the
+// second unfold.  The Gaussian hit-fitting transform receives the
+// pre-computed merged hit candidates instead of computing them itself.
 
 // See README.md for some general comments about this example.
 
@@ -31,26 +33,25 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <cstddef>
-#include <memory>
 #include <utility>
 #include <vector>
 
-#include "copied_from_larsoft_minor_edits/CandHitStandard.h"
 #include "copied_from_larsoft_minor_edits/Hit.h"
 #include "copied_from_larsoft_minor_edits/HitFilterAlg.h"
 #include "copied_from_larsoft_minor_edits/PeakFitterMrqdt.h"
 #include "copied_from_larsoft_minor_edits/Wire.h"
+#include "hit_candidate.hpp"
 #include "wire_roi_data.hpp"
 
 namespace examples {
 
   // ---------------------------------------------------------------
   // First unfold: vector<Wire> -> individual Wire objects
-  // (unchanged from design1)
+  // (unchanged from design2)
   // ---------------------------------------------------------------
-  class unfold_wire_vector_design2 {
+  class unfold_wire_vector_design3 {
   public:
-    explicit unfold_wire_vector_design2(std::vector<recob::Wire> const& wires);
+    explicit unfold_wire_vector_design3(std::vector<recob::Wire> const& wires);
 
     using const_iterator = std::vector<recob::Wire>::const_iterator;
 
@@ -65,11 +66,11 @@ namespace examples {
 
   // ---------------------------------------------------------------
   // Second unfold: Wire -> individual wire_roi_data objects
-  // Replaces the inner tbb::parallel_for over ROI ranges.
+  // (unchanged from design2)
   // ---------------------------------------------------------------
-  class unfold_wire_design2 {
+  class unfold_wire_design3 {
   public:
-    explicit unfold_wire_design2(recob::Wire const& wire);
+    explicit unfold_wire_design3(recob::Wire const& wire);
 
     using state_type = std::size_t;  // index into signalROI ranges
 
@@ -83,9 +84,10 @@ namespace examples {
   };
 
   // ---------------------------------------------------------------
-  // Configuration for the transform
+  // Configuration for the Gaussian hit-fitting transform
+  // (unchanged from design2)
   // ---------------------------------------------------------------
-  struct find_hits_with_gaussians_design2_cfg {
+  struct find_hits_with_gaussians_design3_cfg {
     bool filter_hits;
 
     std::vector<int> long_max_hits_vec;    ///<Maximum number hits on a really long pulse train
@@ -102,27 +104,36 @@ namespace examples {
   };
 
   // ---------------------------------------------------------------
-  // Transform: processes a single ROI and returns the hits found
+  // Transform: processes pre-computed merged hit candidates for a
+  // single ROI and returns the hits found.  Unlike design2, this
+  // does NOT find hit candidates internally — that work has
+  // already been done by the upstream cand_hit_standard transform.
+  //
+  // Both the wire_roi_data (from the second unfold) and the
+  // merge_hit_candidate_vec (from cand_hit_standard) are provided
+  // as separate inputs.
   // ---------------------------------------------------------------
-  std::vector<recob::Hit> find_hits_with_gaussians_design2(
-    find_hits_with_gaussians_design2_cfg const& cfg,
+  std::vector<recob::Hit> find_hits_with_gaussians_design3(
+    find_hits_with_gaussians_design3_cfg const& cfg,
     wire_roi_data const& roi_data,
-    std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
+    merge_hit_candidate_vec const& merged_candidates,
     PeakFitterMrqdt const& peak_fitter_mrqdt,
     HitFilterAlg const& hit_filter_alg);
 
   // ---------------------------------------------------------------
   // Inner fold: collects hits from individual ROIs into a
   // per-wire vector  (roi layer -> wire layer)
+  // (unchanged from design2)
   // ---------------------------------------------------------------
-  void fold_roi_hits_design2(std::vector<recob::Hit>& hits,
+  void fold_roi_hits_design3(std::vector<recob::Hit>& hits,
                              std::vector<recob::Hit> const& hits_from_roi);
 
   // ---------------------------------------------------------------
   // Outer fold: collects per-wire hit vectors into the final
   // output vector  (wire layer -> spill layer)
+  // (unchanged from design2)
   // ---------------------------------------------------------------
-  void fold_hits_into_vector_design2(std::vector<recob::Hit>& hits,
+  void fold_hits_into_vector_design3(std::vector<recob::Hit>& hits,
                                      std::vector<recob::Hit> const& hits_from_wire);
 }
-#endif // PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN2_HPP
+#endif // PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN3_HPP

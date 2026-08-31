@@ -2,21 +2,36 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstddef>
 #include <functional>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <numbers>
 #include <numeric>
-#include <string>
 
 #include "copied_from_larsoft_minor_edits/geo_types.h" // geo::View_t, geo::SignalType, geo::WireID
-#include "copied_from_larsoft_minor_edits/ICandidateHitFinder.h"
 #include "copied_from_larsoft_minor_edits/RawTypes.h" // raw::ChannelID_t
-#include "find_hits_with_gaussians_design2.hpp"
+#include "find_hits_with_gaussians_design3.hpp"
 
 namespace {
+  // Convert from the new hit_candidate_vec type to the legacy
+  // ICandidateHitFinder::HitCandidateVec expected by PeakFitterMrqdt.
+  // In the near future, when we migrate the peak fitter code to
+  // be a transform, we should make it also use hit_candidate_vec
+  // and delete this copy.
+  examples::ICandidateHitFinder::HitCandidateVec
+  to_legacy_candidates(examples::hit_candidate_vec const& candidates)
+  {
+    examples::ICandidateHitFinder::HitCandidateVec result;
+    result.reserve(candidates.size());
+    for (auto const& c : candidates) {
+      result.push_back({c.start_tick, c.stop_tick, c.max_tick, c.min_tick,
+                        c.max_derivative, c.min_derivative,
+                        c.hit_center, c.hit_sigma, c.hit_height});
+    }
+    return result;
+  }
+
   // This is an edited copy of the TMath::Gaus function from ROOT, since we
   // don't want to depend on ROOT in this example.
   double Gaus(double x, double mean, double sigma, bool norm)
@@ -40,24 +55,24 @@ namespace examples {
   // First unfold: vector<Wire> -> individual Wire objects
   // ---------------------------------------------------------------
 
-  unfold_wire_vector_design2::unfold_wire_vector_design2(
+  unfold_wire_vector_design3::unfold_wire_vector_design3(
     std::vector<recob::Wire> const& wires) :
     begin_{wires.begin()}, end_{wires.end()}
   {
     // Probably eventually delete the following line
     // (or convert to logging utility)
-    std::cout << "Finding hits with Gaussians (design 2)." << std::endl;
+    std::cout << "Finding hits with Gaussians (design 3)." << std::endl;
   }
 
-  unfold_wire_vector_design2::const_iterator unfold_wire_vector_design2::initial_value() const
+  unfold_wire_vector_design3::const_iterator unfold_wire_vector_design3::initial_value() const
   {
     return begin_;
   }
 
-  bool unfold_wire_vector_design2::predicate(const_iterator current) const { return current != end_; }
+  bool unfold_wire_vector_design3::predicate(const_iterator current) const { return current != end_; }
 
-  std::pair<unfold_wire_vector_design2::const_iterator, recob::Wire>
-  unfold_wire_vector_design2::unfold(const_iterator current) const
+  std::pair<unfold_wire_vector_design3::const_iterator, recob::Wire>
+  unfold_wire_vector_design3::unfold(const_iterator current) const
   {
     recob::Wire const& wire = *current;
     // Note this copies the Wire object.
@@ -70,22 +85,22 @@ namespace examples {
   // Second unfold: Wire -> individual wire_roi_data objects
   // ---------------------------------------------------------------
 
-  unfold_wire_design2::unfold_wire_design2(recob::Wire const& wire) :
+  unfold_wire_design3::unfold_wire_design3(recob::Wire const& wire) :
     wire_{wire}, n_ranges_{wire.SignalROI().n_ranges()}
   {}
 
-  unfold_wire_design2::state_type unfold_wire_design2::initial_value() const
+  unfold_wire_design3::state_type unfold_wire_design3::initial_value() const
   {
     return 0;
   }
 
-  bool unfold_wire_design2::predicate(state_type current) const
+  bool unfold_wire_design3::predicate(state_type current) const
   {
     return current < n_ranges_;
   }
 
-  std::pair<unfold_wire_design2::state_type, wire_roi_data>
-  unfold_wire_design2::unfold(state_type current) const
+  std::pair<unfold_wire_design3::state_type, wire_roi_data>
+  unfold_wire_design3::unfold(state_type current) const
   {
     recob::Wire::RegionsOfInterest_t const& signalROI = wire_.SignalROI();
 
@@ -104,13 +119,19 @@ namespace examples {
   }
 
   // ---------------------------------------------------------------
-  // Transform: processes a single ROI and returns the hits found
+  // Transform: processes pre-computed merged hit candidates for a
+  // single ROI and returns the hits found.
+  //
+  // This is the same algorithm as design2, except the
+  // cand_hit_standard finding/merging step has been removed — the
+  // merged candidates are provided as a separate input produced by
+  // the upstream cand_hit_standard transform.
   // ---------------------------------------------------------------
 
-  std::vector<recob::Hit> find_hits_with_gaussians_design2(
-    find_hits_with_gaussians_design2_cfg const& cfg,
+  std::vector<recob::Hit> find_hits_with_gaussians_design3(
+    find_hits_with_gaussians_design3_cfg const& cfg,
     wire_roi_data const& roi_data,
-    std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
+    merge_hit_candidate_vec const& merged_candidates,
     PeakFitterMrqdt const& peak_fitter_mrqdt,
     HitFilterAlg const& hit_filter_alg)
   {
@@ -149,35 +170,33 @@ namespace examples {
 
     raw::ChannelID_t channel = roi_data.channel;
     geo::PlaneID::PlaneID_t plane = roi_data.plane;
+
     auto const& range = roi_data.range;
 
     // ROI start time
     raw::TDCtick_t roiFirstBinTick = range.begin_index();
 
     // ###########################################################
-    // ### Scan the waveform and find candidate peaks + merge  ###
+    // ### Merged hit candidates were computed by the upstream  ###
+    // ### cand_hit_standard transform — use them directly.     ###
     // ###########################################################
-
-    examples::ICandidateHitFinder::HitCandidateVec hitCandidateVec;
-    examples::ICandidateHitFinder::MergeHitCandidateVec mergedCandidateHitVec;
-
-    cand_hit_standard.at(plane)->findHitCandidates(range, 0, channel, hitCandidateVec);
-    cand_hit_standard.at(plane)->MergeHitCandidates(
-      range, hitCandidateVec, mergedCandidateHitVec);
 
     // #######################################################
     // ### Lets loop over the pulses we found on this wire ###
     // #######################################################
 
-    for (auto& mergedCands : mergedCandidateHitVec) {
-      int startT = mergedCands.front().startTick;
-      int endT = mergedCands.back().stopTick;
+    for (auto const& mergedCands : merged_candidates) {
+      int startT = mergedCands.front().start_tick;
+      int endT = mergedCands.back().stop_tick;
 
       // ### Putting in a protection in case things went wrong ###
       // ### In the end, this primarily catches the case where ###
       // ### a fake pulse is at the start of the ROI           ###
       if (endT - startT < 5)
         continue;
+
+      // Convert to legacy type for PeakFitterMrqdt
+      auto const legacyCands = to_legacy_candidates(mergedCands);
 
       // #######################################################
       // ### Clearing the parameter vector for the new Pulse ###
@@ -201,7 +220,7 @@ namespace examples {
       // #######################################################
       if (mergedCands.size() <= cfg.max_multi_hit) {
         peak_fitter_mrqdt.findPeakParameters(
-          range.data(), mergedCands, peakParamsVec, chi2PerNDF, NDF);
+          range.data(), legacyCands, peakParamsVec, chi2PerNDF, NDF);
 
         // If the chi2 is infinite then there is a real problem so we bail
         if (!(chi2PerNDF < std::numeric_limits<double>::infinity())) {
@@ -479,7 +498,7 @@ namespace examples {
   // Inner fold: collects hits from individual ROIs into a
   // per-wire vector  (roi layer -> wire layer)
   // ---------------------------------------------------------------
-  void fold_roi_hits_design2(std::vector<recob::Hit>& hits,
+  void fold_roi_hits_design3(std::vector<recob::Hit>& hits,
                              std::vector<recob::Hit> const& hits_from_roi)
   {
     hits.insert(hits.end(), hits_from_roi.begin(), hits_from_roi.end());
@@ -489,7 +508,7 @@ namespace examples {
   // Outer fold: collects per-wire hit vectors into the final
   // output vector  (wire layer -> spill layer)
   // ---------------------------------------------------------------
-  void fold_hits_into_vector_design2(std::vector<recob::Hit>& hits,
+  void fold_hits_into_vector_design3(std::vector<recob::Hit>& hits,
                                      std::vector<recob::Hit> const& hits_from_wire)
   {
     hits.insert(hits.end(), hits_from_wire.begin(), hits_from_wire.end());

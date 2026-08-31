@@ -44,35 +44,54 @@ issues and remove performance bottlenecks.
 There are multiple prototypes to explore different
 approaches to migrating GausHitFinder to `phlex`.
 
-These files are an example where one large `phlex`
+Design 0 is an example where one large `phlex`
 algorithm replaces GausHitFinder.
 
-1. find_hits_with_gaussians.hpp
-2. find_hits_with_gaussians.cpp
-3. register_find_hits_with_gaussians.cpp
-4. test_find_hits_with_gaussians.jsonnet
+1. find_hits_with_gaussians_design0.hpp
+2. find_hits_with_gaussians_design0.cpp
+3. register_find_hits_with_gaussians_design0.cpp
+4. test_find_hits_with_gaussians_design0.jsonnet
 
-These files are an example where there is an
-unfold algorithm, followed by a transform algorithm,
-and finally a fold algorithm. The outer parallel_for
-iteration is replaced by that sequence of algorithms.
+Design 1 an example where there is an unfold algorithm,
+followed by a transform algorithm, and finally a fold
+algorithm. The outer parallel_for iteration is replaced
+by that sequence of algorithms.
 
 1. find_hits_with_gaussians_design1.hpp
 2. find_hits_with_gaussians_design1.cpp
 3. register_find_hits_with_gaussians_design1.cpp
 4. test_find_hits_with_gaussians_design1.jsonnet
 
-These files extend design 1 by also replacing the inner
+Design 2 extends design 1 by also replacing the inner
 parallel_for (over ROIs) with a second unfold-transform-fold.
 The resulting layer hierarchy is:
 spill -> wire -> roi. A `wire_roi_data` struct bundles
 a single ROI (`datarange_t`) with the wire-level context
-(channel, view) needed by the transform.
+(channel, view, plane) needed by the transform.
 
 1. find_hits_with_gaussians_design2.hpp
 2. find_hits_with_gaussians_design2.cpp
 3. register_find_hits_with_gaussians_design2.cpp
 4. test_find_hits_with_gaussians_design2.jsonnet
+5. wire_roi_data.hpp
+
+Design 3 extends design 2 by extracting the
+candidate-hit-finding step (`cand_hit_standard`) into a
+separate transform that runs after the second unfold.
+Both `cand_hit_standard` and the Gaussian hit-fitting
+transform receive the `wire_roi_data` directly from the
+second unfold. The `cand_hit_standard` transform outputs
+`merge_hit_candidate_vec`, which is then provided as a
+second input to the Gaussian hit-fitting transform.
+
+1. find_hits_with_gaussians_design3.hpp
+2. find_hits_with_gaussians_design3.cpp
+3. register_find_hits_with_gaussians_design3.cpp
+4. test_find_hits_with_gaussians_design3.jsonnet
+5. cand_hit_standard.hpp
+6. cand_hit_standard.cpp
+7. hit_candidate.hpp
+8. wire_roi_data.hpp
 
 We plan to implement more prototype migrations
 of GausHitFinder in the future to explore the
@@ -100,6 +119,8 @@ temporary and not part of the migration example.
 8. wires_*.dat
 9. register_find_hits_with_gaussians_cell_id.cpp
 10. examples_generate_layers.cpp
+11. run_test.sh
+12. compare_hits.py
 
 ## Files copied from LArSoft
 
@@ -130,6 +151,15 @@ sequence of algorithms (design 1). After that, we created
 design 2 which also replaces the inner `parallel_for` (over ROIs)
 with a second `unfold`, `transform`, and `fold` sequence,
 resulting in a three-layer hierarchy (spill -> wire -> roi).
+Design 3 goes further by extracting the candidate-hit-finding
+step (`cand_hit_standard`) into its own transform, separate from
+the Gaussian hit-fitting transform. Both transforms receive
+`wire_roi_data` from the second unfold, and the merged hit
+candidates flow from `cand_hit_standard` into the fitting
+transform as a second input. A future design 4 will move the
+`cand_hit_standard` registration into a separate module so that
+alternative candidate-hit-finding implementations can be
+swapped in independently.
 We plan to run tests and compare the different versions.
 
 `Phlex` will not support the `Tools` feature that existed in
@@ -137,12 +167,17 @@ We plan to run tests and compare the different versions.
 by `tbb::flow_graph` offer sufficient configurability that we
 don't need a separate plugin system like `Tools`.
 Another possibility is that we eventually implement a
-plugin system for `phlex`. For now, I replaced the two `Tool`
-types used in `GausHitFinder` with direct instantiations of one
-of the plugin types. I instantiated a vector of objects of type
-`CandHitStandard` and one object of type `PeakFitterMrqdt`. They
+plugin system for `phlex`. In design 0, the two `Tool` types
+used in `GausHitFinder` are replaced with direct instantiations
+of a type similar to one of the plugin types (a vector of objects of type
+`CandHitStandard` and one object of type `PeakFitterMrqdt`). They
 needed some modification but are as close as reasonably possible
-to the original versions.
+to the original versions. In design 3, the candidate-hit-finding
+step is factored out as a separate `phlex` transform using a
+new standalone implementation (`cand_hit_standard` namespace)
+that uses new types (`hit_candidate`, `merge_hit_candidate_vec`)
+rather than the legacy `ICandidateHitFinder` types. A conversion
+to legacy types is done where `PeakFitterMrqdt` still requires them.
 
 I do not know yet how to deal with the fact that `GausHitFinder`
 can be configured to produce 1 or 2 output data products.
