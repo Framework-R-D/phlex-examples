@@ -1,5 +1,5 @@
-#ifndef PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_HPP
-#define PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_HPP
+#ifndef PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN0_HPP
+#define PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN0_HPP
 
 // See README.md for some general comments about this example.
 
@@ -39,7 +39,7 @@
 
 namespace examples {
 
-  struct find_hits_with_gaussians_cfg {
+  struct find_hits_with_gaussians_design0_cfg {
     bool filter_hits;
 
     std::vector<int> long_max_hits_vec;    ///<Maximum number hits on a really long pulse train
@@ -55,11 +55,11 @@ namespace examples {
     std::vector<float> pulse_ratio_cuts;
   };
 
-  std::vector<recob::Hit> find_hits_with_gaussians(find_hits_with_gaussians_cfg const& cfg,
+  std::vector<recob::Hit> find_hits_with_gaussians_design0(find_hits_with_gaussians_design0_cfg const& cfg,
                                                    std::vector<recob::Wire> const& wires,
                                                    std::vector<std::shared_ptr<CandHitStandard>> const& cand_hit_standard,
                                                    PeakFitterMrqdt const& peak_fitter_mrqdt,
                                                    HitFilterAlg const& hit_filter_alg);
 
 }
-#endif // PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_HPP
+#endif // PHLEX_EXAMPLES_FIND_HITS_WITH_GAUSSIANS_DESIGN0_HPP
