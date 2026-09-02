@@ -299,7 +299,6 @@ namespace examples {
                 // ### Charge ###
                 float charge =
                   chargeFunc(peakMean, peakAmp, peakWidth, cfg.area_norms_vec[plane], startT, endT);
-                ;
                 float chargeErr = std::sqrt(std::numbers::pi) *
                                   (peakAmpErr * peakWidthErr + peakWidthErr * peakAmpErr);
 
