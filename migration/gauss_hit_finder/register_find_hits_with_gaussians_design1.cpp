@@ -77,15 +77,15 @@ namespace {
 
 PHLEX_REGISTER_ALGORITHMS(m, config)
 {
-  auto const layer_unfold_input = config.get<std::string>("layer_unfold_input");
-  auto const layer_unfold_output = config.get<std::string>("layer_unfold_output");
+  auto const unfold_input_layer = config.get<std::string>("unfold_input_layer");
+  auto const unfold_output_layer = config.get<std::string>("unfold_output_layer");
 
   m.unfold<examples::unfold_wire_vector_design1>("unfold_wire_vector_design1",
                                                  &examples::unfold_wire_vector_design1::predicate,
                                                  &examples::unfold_wire_vector_design1::unfold,
-                                                 layer_unfold_output,
+                                                 unfold_output_layer,
                                                  concurrency::unlimited)
-    .input_family(product_selector{.creator = "wires", .layer = layer_unfold_input, .suffix = ""});
+    .input_family(product_selector{.creator = "wires", .layer = unfold_input_layer, .suffix = ""});
 
   m.transform(
      "find_hits_with_gaussians_design1",
@@ -98,12 +98,12 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
      },
      concurrency::unlimited)
     .input_family(
-      product_selector{.creator = "unfold_wire_vector_design1", .layer = layer_unfold_output});
+      product_selector{.creator = "unfold_wire_vector_design1", .layer = unfold_output_layer});
 
   m.fold("fold_hits_into_vector_design1",
          examples::fold_hits_into_vector_design1,
          concurrency::serial,
-         layer_unfold_input)
+         unfold_input_layer)
     .input_family(product_selector{.creator = "find_hits_with_gaussians_design1",
-                                   .layer = layer_unfold_output});
+                                   .layer = unfold_output_layer});
 }

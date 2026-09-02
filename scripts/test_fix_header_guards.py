@@ -33,18 +33,14 @@ class ComputeExpectedGuardTests(unittest.TestCase):
         root = Path("/project")
 
         self.assertEqual(
-            compute_expected_guard(
-                root / "1.0-release" / "2nd.geometry.hpp", root
-            ),
+            compute_expected_guard(root / "1.0-release" / "2nd.geometry.hpp", root),
             "FILE_1_0_RELEASE_FILE_2ND_GEOMETRY_HPP",
         )
 
     def test_collapses_repeated_underscores(self) -> None:
         root = Path("/project")
 
-        self.assertEqual(
-            compute_expected_guard(root / "a..b.hpp", root), "A_B_HPP"
-        )
+        self.assertEqual(compute_expected_guard(root / "a..b.hpp", root), "A_B_HPP")
         self.assertEqual(
             compute_expected_guard(root / "foo__bar.hpp", root), "FOO_BAR_HPP"
         )

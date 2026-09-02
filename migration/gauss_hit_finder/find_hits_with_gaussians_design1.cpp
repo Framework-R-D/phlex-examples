@@ -18,24 +18,7 @@
 #include "copied_from_larsoft_minor_edits/RawTypes.h"  // raw::ChannelID_t
 #include "copied_from_larsoft_minor_edits/geo_types.h" // geo::View_t, geo::SignalType, geo::WireID
 #include "find_hits_with_gaussians_design1.hpp"
-
-namespace {
-  // This is an edited copy of the TMath::Gaus function from ROOT, since we
-  // don't want to depend on ROOT in this example.
-  double Gaus(double x, double mean, double sigma, bool norm)
-  {
-    if (sigma == 0)
-      return 1.e30;
-    double arg = (x - mean) / sigma;
-    // for |arg| > 39  result is zero in double precision
-    if (arg < -39.0 || arg > 39.0)
-      return 0.0;
-    double res = std::exp(-0.5 * arg * arg);
-    if (!norm)
-      return res;
-    return res / (2.50662827463100024 * sigma); //sqrt(2*Pi)=2.50662827463100024
-  }
-}
+#include "gaus.hpp"
 
 namespace examples {
 
@@ -309,7 +292,7 @@ namespace examples {
             // ### Charge ###
             float charge =
               chargeFunc(peakMean, peakAmp, peakWidth, cfg.area_norms_vec[plane], startT, endT);
-            ;
+
             float chargeErr =
               std::sqrt(std::numbers::pi) * (peakAmpErr * peakWidthErr + peakWidthErr * peakAmpErr);
 
