@@ -13,4 +13,11 @@ algorithms.
    :numbered:
 
    introduction
-   
+   preparation
+   refactoring
+   mapping
+.. toctree::
+   :maxdepth: 1
+   :caption: Appendices
+
+   art_ptr_removal
