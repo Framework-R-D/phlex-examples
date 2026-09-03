@@ -408,7 +408,7 @@ Many common uses do not require a service:
   ``std::cerr``) are ordinary C++ and need no framework wrapper.  *Phlex*
   currently uses ``spdlog``, although a framework-supported logging solution will be formally decided on later.
 * **Profiling and monitoring.** Facilities such as ``TimeTracker`` and
-  ``MemoryTracker`` are infrastructure concerns provided by the framework
+  ``MemoryTracker`` are infrastructure concerns that will be provided by the framework
   runtime; they do not need to expose a service handle to user code.
   *Phlex* does not currently provide profiling and monitoring facilities, yet
   they will likely be expressed as natively provided framework facilities rather than a user-facing service.

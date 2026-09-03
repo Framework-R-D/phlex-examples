@@ -115,7 +115,7 @@ Registration shape:
 
    auto add = [](int& sum, int value) { std::atomic_ref(sum) += value; };
 
-   g.fold("run_add", add, 0, concurrency::unlimited, "run")
+   g.fold("run_add", add, concurrency::unlimited, "run", 0)
      .input_family(
        product_selector{.creator = "input", .layer = "event", .suffix = "number"}
      )
@@ -370,7 +370,7 @@ In *Phlex*, the same step function binds as a fold:
    {
      using namespace phlex;
 
-     m.fold("MySum", accumulate, 0, "subrun", concurrency::serial)
+     m.fold("MySum", accumulate, concurrency::serial, "subrun", 0)
        .input_family(pset.get<product_selector>("input"));
    }
 
