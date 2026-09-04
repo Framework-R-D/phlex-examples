@@ -1,0 +1,52 @@
+name: Deploy migration guide
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - migration/doc/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/framework-r-d/phlexdoc:2025-06-06
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build HTML
+        working-directory: migration/doc
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: migration/doc/build/html
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
