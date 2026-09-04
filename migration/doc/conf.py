@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath('.') + '/_extensions')
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Phlex Migration Guide'
+project = 'Migration Guide'
 copyright = '2026, Fermi Forward Discovery Group, LLC'
 author = ''
 
@@ -55,6 +55,7 @@ rst_prolog = """
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'bizstyle'
+html_logo = 'art-to-phlex.png'
 html_static_path = ['_static']
 html_style = 'phlexframework.css'
 html_last_updated_fmt = ""  # Equivalent to showing (e.g.) May 29, 2025
@@ -62,6 +63,7 @@ html_last_updated_fmt = ""  # Equivalent to showing (e.g.) May 29, 2025
 # -- Options for LaTeX output ------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-latex-output
 
+latex_logo = 'art-to-phlex.png'
 latex_elements = {}
 
 latex_documents = [("index",
