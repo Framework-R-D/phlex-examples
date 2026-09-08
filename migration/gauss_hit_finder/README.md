@@ -21,7 +21,7 @@ v10_05_00 of larreco which was the version in use with DUNE
 software at the time the migration work was started. If there
 is a request, I can update the example to a more recent version.
 
-# Work in Progress
+## Work in Progress
 
 This is work in progress. It is not final. It is intended
 that this example will change as we learn more about using
@@ -37,7 +37,7 @@ As we run tests, it may point to problems in phlex and this
 may guide which areas developers should focus on to fix
 issues and remove performance bottlenecks.
 
-# Files in this directory
+## Files in this directory
 
 ## Interesting files that are the heart of the example
 
@@ -135,9 +135,9 @@ these files should be deleted to remove duplication.
 
 These files are in the subdirectory:
 
-  ```phlex-examples/migration/gauss_hit_finder/copied_from_larsoft_minor_edits```
+`phlex-examples/migration/gauss_hit_finder/copied_from_larsoft_minor_edits`
 
-# Where more work is needed
+## Where more work is needed
 
 The first example was implemented as a single `phlex`
 transform. Does it make sense to split it with unfolds
@@ -197,7 +197,7 @@ Here is a list of the files that were used as a basis
 for this example, but significantly modified from the
 LArSoft version:
 
-```
+```text
 https://github.com/LArSoft/larreco/blob/develop/larreco/HitFinder/GausHitFinder_module.cc
 ```
 
@@ -207,7 +207,7 @@ as `art Tools`, but otherwise the changes are minimal.
 Here is a list of the files that were copied from LArSoft
 with minimal modifications:
 
-```
+```text
     https://github.com/LArSoft/larreco/blob/develop/larreco/HitFinder/HitFinderTools/CandHitStandard_tool.cc
     https://github.com/LArSoft/larreco/blob/develop/larreco/HitFinder/HitFinderTools/PeakFitterMrqdt_tool.cc
     https://github.com/LArSoft/larreco/blob/develop/larreco/HitFinder/HitFilterAlg.h
@@ -261,19 +261,30 @@ avoid depending on ROOT in `phlex` code for now (slightly edited).
 Are we allowed to depend on ROOT in `phlex` algorithm code? That could
 easily be restored if the build system allows it.
 
-# Testing
+## Testing
 
-This was tested by running `GausHitFinder` with the `art` framework and running the modified `GausHitFinder` with the `phlex` framework. The two processes used identical input (the `std::vector<Wire>`). The output `std::vector<recob::Hit>` objects were compared using a text file printed during each process. The output was identical except for the following:
+This was tested by running `GausHitFinder` with the `art` framework and running
+the modified `GausHitFinder` with the `phlex` framework. The two processes used
+identical input (the `std::vector<Wire>`). The output `std::vector<recob::Hit>`
+objects were compared using a text file printed during each process. The output
+was identical except for the following:
 
-Two output data members of `Hit` were ignored because they depend on the `Geometry` and that is not implemented yet for `phlex`. In the `phlex` version, these data members are filled with default values.
-```
+Two output data members of `Hit` were ignored because they depend on the
+`Geometry` and that is not implemented yet for `phlex`. In the `phlex` version,
+these data members are filled with default values.
+
+```cpp
     geo::SigType_t fSignalType; ///< signal type for the plane of the hit
     geo::WireID fWireID;        ///< WireID for the hit (Cryostat, TPC, Plane, Wire)
 ```
 
-This was done for all `phlex` versions of GausHitFinder. The output of all versions are identical with each other and with the `art` version.
+This was done for all `phlex` versions of GausHitFinder. The output of all
+versions are identical with each other and with the `art` version.
 
-The `phlex` process was run with multithreading and that causes the order of `Hit` objects to vary from one execution to the next and also the order of events to vary. In the comparison the `Hit` objects were sorted and we had to be careful to compare matching events.
+The `phlex` process was run with multithreading and that causes the order of
+`Hit` objects to vary from one execution to the next and also the order of
+events to vary. In the comparison the `Hit` objects were sorted and we had to
+be careful to compare matching events.
 
 Contact the `phlex` group if you are interested in details related
 to running `art` side of this test or want the input files (or

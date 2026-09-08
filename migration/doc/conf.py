@@ -7,16 +7,20 @@ import os
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.abspath('.') + '/_extensions')
+sys.path.insert(0, os.path.abspath(".") + "/_extensions")
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Migration Guide'
-copyright = '2026, Fermi Forward Discovery Group, LLC'
-author = ''
+project = "Migration Guide"
+copyright = "2026, Fermi Forward Discovery Group, LLC"
+author = ""
 
-git_commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+git_commit = (
+    subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+    .decode("ascii")
+    .strip()
+)
 
 release = f"0.1.alpha ({git_commit})"
 
@@ -24,18 +28,18 @@ release = f"0.1.alpha ({git_commit})"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx.ext.autosectionlabel',
+    "sphinx.ext.autosectionlabel",
 ]
 
-exclude_patterns = ['.venv/**', '.venv']
+exclude_patterns = [".venv/**", ".venv"]
 
 autosectionlabel_prefix_document = True
 numfig = True
 numfig_format = {
-    'code-block': 'Listing %s',
-    'figure': 'Fig. %s',
-    'section': 'Section %s',
-    'table': 'Table %s',
+    "code-block": "Listing %s",
+    "figure": "Fig. %s",
+    "section": "Section %s",
+    "table": "Table %s",
 }
 
 
@@ -54,23 +58,20 @@ rst_prolog = """
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'bizstyle'
-html_logo = 'art-to-phlex.png'
-html_static_path = ['_static']
-html_style = 'phlexframework.css'
+html_theme = "bizstyle"
+html_logo = "art-to-phlex.png"
+html_static_path = ["_static"]
+html_style = "phlexframework.css"
 html_last_updated_fmt = ""  # Equivalent to showing (e.g.) May 29, 2025
 
 # -- Options for LaTeX output ------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-latex-output
 
-latex_logo = 'art-to-phlex.png'
+latex_logo = "art-to-phlex.png"
 latex_elements = {}
 
-latex_documents = [("index",
-                    "phlex-migration-guide.tex",
-                    project,
-                    author,
-                    "manual",
-                    False)]
+latex_documents = [
+    ("index", "phlex-migration-guide.tex", project, author, "manual", False)
+]
 
 latex_table_style = ["booktabs"]

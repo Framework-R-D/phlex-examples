@@ -11,9 +11,9 @@
 #include <numeric>
 #include <string>
 
-#include "copied_from_larsoft_minor_edits/geo_types.h" // geo::View_t, geo::SignalType, geo::WireID
 #include "copied_from_larsoft_minor_edits/ICandidateHitFinder.h"
-#include "copied_from_larsoft_minor_edits/RawTypes.h" // raw::ChannelID_t
+#include "copied_from_larsoft_minor_edits/RawTypes.h"  // raw::ChannelID_t
+#include "copied_from_larsoft_minor_edits/geo_types.h" // geo::View_t, geo::SignalType, geo::WireID
 #include "find_hits_with_gaussians_design2.hpp"
 
 namespace {
@@ -40,8 +40,7 @@ namespace examples {
   // First unfold: vector<Wire> -> individual Wire objects
   // ---------------------------------------------------------------
 
-  unfold_wire_vector_design2::unfold_wire_vector_design2(
-    std::vector<recob::Wire> const& wires) :
+  unfold_wire_vector_design2::unfold_wire_vector_design2(std::vector<recob::Wire> const& wires) :
     begin_{wires.begin()}, end_{wires.end()}
   {
     // Probably eventually delete the following line
@@ -54,7 +53,10 @@ namespace examples {
     return begin_;
   }
 
-  bool unfold_wire_vector_design2::predicate(const_iterator current) const { return current != end_; }
+  bool unfold_wire_vector_design2::predicate(const_iterator current) const
+  {
+    return current != end_;
+  }
 
   std::pair<unfold_wire_vector_design2::const_iterator, recob::Wire>
   unfold_wire_vector_design2::unfold(const_iterator current) const
@@ -72,20 +74,15 @@ namespace examples {
 
   unfold_wire_design2::unfold_wire_design2(recob::Wire const& wire) :
     wire_{wire}, n_ranges_{wire.SignalROI().n_ranges()}
-  {}
-
-  unfold_wire_design2::state_type unfold_wire_design2::initial_value() const
   {
-    return 0;
   }
 
-  bool unfold_wire_design2::predicate(state_type current) const
-  {
-    return current < n_ranges_;
-  }
+  unfold_wire_design2::state_type unfold_wire_design2::initial_value() const { return 0; }
 
-  std::pair<unfold_wire_design2::state_type, wire_roi_data>
-  unfold_wire_design2::unfold(state_type current) const
+  bool unfold_wire_design2::predicate(state_type current) const { return current < n_ranges_; }
+
+  std::pair<unfold_wire_design2::state_type, wire_roi_data> unfold_wire_design2::unfold(
+    state_type current) const
   {
     recob::Wire::RegionsOfInterest_t const& signalROI = wire_.SignalROI();
 
@@ -99,7 +96,8 @@ namespace examples {
     //   plane = wid.Plane;
     geo::PlaneID::PlaneID_t plane = 0;
 
-    wire_roi_data data{signalROI.range(current), wire_.Channel(), static_cast<int>(wire_.View()), plane};
+    wire_roi_data data{
+      signalROI.range(current), wire_.Channel(), static_cast<int>(wire_.View()), plane};
     return std::make_pair(current + 1, std::move(data));
   }
 
@@ -162,8 +160,7 @@ namespace examples {
     examples::ICandidateHitFinder::MergeHitCandidateVec mergedCandidateHitVec;
 
     cand_hit_standard.at(plane)->findHitCandidates(range, 0, channel, hitCandidateVec);
-    cand_hit_standard.at(plane)->MergeHitCandidates(
-      range, hitCandidateVec, mergedCandidateHitVec);
+    cand_hit_standard.at(plane)->MergeHitCandidates(range, hitCandidateVec, mergedCandidateHitVec);
 
     // #######################################################
     // ### Lets loop over the pulses we found on this wire ###
@@ -421,11 +418,10 @@ namespace examples {
         // Sort in ascending peak height
         // (I believe the preceding comment is incorrect. The sort below
         // is in descending order of peak height, not ascending.)
-        std::sort(filteredHitVec.begin(),
-                  filteredHitVec.end(),
-                  [](auto const& left, auto const& right) {
-                    return left.PeakAmplitude() > right.PeakAmplitude();
-                  });
+        std::sort(
+          filteredHitVec.begin(), filteredHitVec.end(), [](auto const& left, auto const& right) {
+            return left.PeakAmplitude() > right.PeakAmplitude();
+          });
 
         // Reject if the first hit fails the PH/wid cuts
         if (filteredHitVec.front().PeakAmplitude() < cfg.pulse_height_cuts.at(plane) ||
@@ -441,9 +437,7 @@ namespace examples {
           float threshold(cfg.pulse_ratio_cuts.at(plane));
 
           std::vector<recob::Hit>::iterator smallHitItr = std::find_if(
-            filteredHitVec.begin(),
-            filteredHitVec.end(),
-            [largestPH, threshold](auto const& hit) {
+            filteredHitVec.begin(), filteredHitVec.end(), [largestPH, threshold](auto const& hit) {
               return hit.PeakAmplitude() < 8. && hit.PeakAmplitude() / largestPH < threshold;
             });
 
@@ -452,11 +446,10 @@ namespace examples {
             filteredHitVec.resize(std::distance(filteredHitVec.begin(), smallHitItr));
 
           // Resort in time order
-          std::sort(filteredHitVec.begin(),
-                    filteredHitVec.end(),
-                    [](auto const& left, auto const& right) {
-                      return left.PeakTime() < right.PeakTime();
-                    });
+          std::sort(
+            filteredHitVec.begin(), filteredHitVec.end(), [](auto const& left, auto const& right) {
+              return left.PeakTime() < right.PeakTime();
+            });
         }
 
         // Copy the hits we want to keep to the filtered hit collection

@@ -6,8 +6,8 @@
 ///         type aliases used across the gauss hit finder code.
 ///
 ////////////////////////////////////////////////////////////////////////
-#ifndef PHLEX_EXAMPLES_MIGRATION_GAUSS_HIT_FINDER_HIT_CANDIDATE_HPP
-#define PHLEX_EXAMPLES_MIGRATION_GAUSS_HIT_FINDER_HIT_CANDIDATE_HPP
+#ifndef MIGRATION_GAUSS_HIT_FINDER_HIT_CANDIDATE_HPP
+#define MIGRATION_GAUSS_HIT_FINDER_HIT_CANDIDATE_HPP
 
 #include <cstddef>
 #include <vector>
@@ -30,4 +30,4 @@ namespace examples {
   using merge_hit_candidate_vec = std::vector<hit_candidate_vec>;
 }
 
-#endif // PHLEX_EXAMPLES_MIGRATION_GAUSS_HIT_FINDER_HIT_CANDIDATE_HPP
+#endif // MIGRATION_GAUSS_HIT_FINDER_HIT_CANDIDATE_HPP

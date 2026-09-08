@@ -14,9 +14,9 @@
 
 #include "tbb/parallel_for.h"
 
-#include "copied_from_larsoft_minor_edits/geo_types.h" // geo::View_t, geo::SignalType, geo::WireID
 #include "copied_from_larsoft_minor_edits/ICandidateHitFinder.h"
-#include "copied_from_larsoft_minor_edits/RawTypes.h" // raw::ChannelID_t
+#include "copied_from_larsoft_minor_edits/RawTypes.h"  // raw::ChannelID_t
+#include "copied_from_larsoft_minor_edits/geo_types.h" // geo::View_t, geo::SignalType, geo::WireID
 #include "find_hits_with_gaussians_design1.hpp"
 
 namespace {
@@ -39,8 +39,7 @@ namespace {
 
 namespace examples {
 
-  unfold_wire_vector_design1::unfold_wire_vector_design1(
-    std::vector<recob::Wire> const& wires) :
+  unfold_wire_vector_design1::unfold_wire_vector_design1(std::vector<recob::Wire> const& wires) :
     begin_{wires.begin()}, end_{wires.end()}
   {
     // Probably eventually delete the following line
@@ -53,7 +52,10 @@ namespace examples {
     return begin_;
   }
 
-  bool unfold_wire_vector_design1::predicate(const_iterator current) const { return current != end_; }
+  bool unfold_wire_vector_design1::predicate(const_iterator current) const
+  {
+    return current != end_;
+  }
 
   std::pair<unfold_wire_vector_design1::const_iterator, recob::Wire>
   unfold_wire_vector_design1::unfold(const_iterator current) const
