@@ -39,6 +39,16 @@ class ComputeExpectedGuardTests(unittest.TestCase):
             "FILE_1_0_RELEASE_FILE_2ND_GEOMETRY_HPP",
         )
 
+    def test_collapses_repeated_underscores(self) -> None:
+        root = Path("/project")
+
+        self.assertEqual(
+            compute_expected_guard(root / "a..b.hpp", root), "A_B_HPP"
+        )
+        self.assertEqual(
+            compute_expected_guard(root / "foo__bar.hpp", root), "FOO_BAR_HPP"
+        )
+
     def test_fixes_malformed_top_level_guard(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -12,6 +12,7 @@ from pathlib import Path
 def normalize_guard_component(component: str) -> str:
     """Convert a path component to a non-reserved macro identifier token."""
     normalized = re.sub(r"[^A-Z0-9_]", "_", component.upper())
+    normalized = re.sub(r"_+", "_", normalized)
     if not normalized or not normalized[0].isalpha():
         return f"FILE_{normalized}" if normalized else "FILE"
     return normalized
