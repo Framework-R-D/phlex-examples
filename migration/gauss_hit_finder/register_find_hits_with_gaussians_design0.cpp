@@ -13,12 +13,12 @@
 #include "copied_from_larsoft_minor_edits/Wire.h"
 
 #include "phlex/module.hpp"
-#include "find_hits_with_gaussians.hpp"
+#include "find_hits_with_gaussians_design0.hpp"
 
 using namespace phlex;
 
 namespace {
-  examples::find_hits_with_gaussians_cfg main_cfg(configuration config) {
+  examples::find_hits_with_gaussians_design0_cfg main_cfg(configuration config) {
     return {
       .filter_hits = config.get<bool>("filter_hits"),
       .long_max_hits_vec = config.get<std::vector<int>>("long_max_hits_vec"),
@@ -79,13 +79,13 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
 {
   auto const layer = config.get<std::string>("layer");
 
-  m.transform("find_hits_with_gaussians",
+  m.transform("find_hits_with_gaussians_design0",
               [cfg = main_cfg(config),
                cand_hit_standard_vec = make_cand_hit_standard_vec(config),
                peak_fitter_mrqdt = make_peak_fitter_mrqdt(config),
                hit_filter_alg = make_hit_filter_alg(config)]
               (std::vector<recob::Wire> const& wires) {
-                 return examples::find_hits_with_gaussians(cfg,
+                 return examples::find_hits_with_gaussians_design0(cfg,
                                                            wires,
                                                            cand_hit_standard_vec,
                                                            *peak_fitter_mrqdt,

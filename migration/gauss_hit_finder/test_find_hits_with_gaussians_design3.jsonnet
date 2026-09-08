@@ -16,9 +16,12 @@
     },
   },
   modules: {
-    find_hits_with_gaussians_cpp: {
-      cpp: 'find_hits_with_gaussians_hof',
-      layer: 'spill',
+    find_hits_with_gaussians_design3_cpp: {
+      cpp: 'find_hits_with_gaussians_design3_hof',
+      layer_vector_of_wires: 'spill',
+      layer_wire: 'wire',
+      layer_roi: 'roi',
+      roi_threshold: [6.0, 6.0, 6.0],
 
       filter_hits: false,
       long_max_hits_vec: [1, 1, 1],
@@ -30,20 +33,6 @@
       pulse_height_cuts: [3.0,  3.0,  3.0],
       pulse_width_cuts: [2.0, 1.5, 1.0],
       pulse_ratio_cuts: [0.35, 0.40, 0.20],
-      cand_hit_standard_configs: {
-        CandidateHitsPlane0: {
-          Plane: 0,
-          roiThreshold: 6.0,
-        },
-        CandidateHitsPlane1: {
-          Plane: 1,
-          roiThreshold: 6.0,
-        },
-        CandidateHitsPlane2: {
-          Plane: 2,
-          roiThreshold: 6.0,
-        },
-      },
       peak_fitter_mrqdt_config: {
         min_width: 0.5,
         max_width_mult: 3.0,
@@ -57,9 +46,10 @@
     },
     print_hits_to_file_cpp: {
       cpp: 'print_hits_to_file_hof',
-      creator: 'find_hits_with_gaussians',
+      creator: 'fold_hits_into_vector_design3',
       layer: 'spill',
-      filename_prefix: 'hits',
+      filename_prefix: 'hits_design3',
     },
+
   },
 }
