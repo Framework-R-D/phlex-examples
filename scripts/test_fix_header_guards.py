@@ -29,6 +29,16 @@ class ComputeExpectedGuardTests(unittest.TestCase):
             "MIGRATION_GEOMETRY_MY_GEOMETRY_HPP",
         )
 
+    def test_normalizes_non_identifier_path_characters(self) -> None:
+        root = Path("/project")
+
+        self.assertEqual(
+            compute_expected_guard(
+                root / "1.0-release" / "2nd.geometry.hpp", root
+            ),
+            "FILE_1_0_RELEASE_FILE_2ND_GEOMETRY_HPP",
+        )
+
     def test_fixes_malformed_top_level_guard(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -1,0 +1,2 @@
+[lint.per-file-ignores]
+"migration/doc/conf.py" = ["A001", "S607"]

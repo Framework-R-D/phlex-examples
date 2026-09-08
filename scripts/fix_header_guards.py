@@ -9,12 +9,22 @@ import sys
 from pathlib import Path
 
 
+def normalize_guard_component(component: str) -> str:
+    """Convert a path component to a non-reserved macro identifier token."""
+    normalized = re.sub(r"[^A-Z0-9_]", "_", component.upper())
+    if not normalized or not normalized[0].isalpha():
+        return f"FILE_{normalized}" if normalized else "FILE"
+    return normalized
+
+
 def compute_expected_guard(file_path: Path, root: Path) -> str:
     """Compute expected guard macro: X_Y_HEADER_EXT."""
     rel = file_path.relative_to(root)
     # Include directory components only; a top-level header has none.
-    parts = [part.upper().replace("-", "_") for part in rel.parts[:-1]]
-    parts.extend([rel.stem.upper().replace("-", "_"), rel.suffix[1:].upper()])
+    parts = [normalize_guard_component(part) for part in rel.parts[:-1]]
+    parts.extend(
+        [normalize_guard_component(rel.stem), normalize_guard_component(rel.suffix[1:])]
+    )
     return "_".join(parts)
 
 
