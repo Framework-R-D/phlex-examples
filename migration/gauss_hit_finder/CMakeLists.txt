@@ -1,20 +1,22 @@
 # Proxies for framework-agnostic experiment libraries
 # N.B. The specified library type should be SHARED.
-add_library(find_hits_with_gaussians SHARED
-    find_hits_with_gaussians_design0.cpp
-    find_hits_with_gaussians_design1.cpp
-    find_hits_with_gaussians_design2.cpp
-    find_hits_with_gaussians_design3.cpp
-    cand_hit_standard.cpp
-    copied_from_larsoft_minor_edits/Hit.cxx
-    copied_from_larsoft_minor_edits/geo_types.cxx
-    copied_from_larsoft_minor_edits/CandHitStandard.cxx
-    copied_from_larsoft_minor_edits/PeakFitterMrqdt.cxx
-    copied_from_larsoft_minor_edits/HitFilterAlg.cxx
-    copied_from_larsoft_minor_edits/MarqFitAlg.cxx
-    copied_from_larsoft_minor_edits/Wire.cxx
-    wire_serialization.cpp
-    print_hits_to_file.cpp
+add_library(
+  find_hits_with_gaussians
+  SHARED
+  find_hits_with_gaussians_design0.cpp
+  find_hits_with_gaussians_design1.cpp
+  find_hits_with_gaussians_design2.cpp
+  find_hits_with_gaussians_design3.cpp
+  cand_hit_standard.cpp
+  copied_from_larsoft_minor_edits/Hit.cxx
+  copied_from_larsoft_minor_edits/geo_types.cxx
+  copied_from_larsoft_minor_edits/CandHitStandard.cxx
+  copied_from_larsoft_minor_edits/PeakFitterMrqdt.cxx
+  copied_from_larsoft_minor_edits/HitFilterAlg.cxx
+  copied_from_larsoft_minor_edits/MarqFitAlg.cxx
+  copied_from_larsoft_minor_edits/Wire.cxx
+  wire_serialization.cpp
+  print_hits_to_file.cpp
 )
 target_link_libraries(find_hits_with_gaussians PRIVATE TBB::tbb fmt::fmt)
 
@@ -27,21 +29,26 @@ set(designs 0 1 2 3)
 
 # Register experiment libraries with Phlex
 foreach(d IN LISTS designs)
-  add_library(find_hits_with_gaussians_design${d}_hof MODULE
-              register_find_hits_with_gaussians_design${d}.cpp)
-  target_link_libraries(find_hits_with_gaussians_design${d}_hof PRIVATE
-                        phlex::module find_hits_with_gaussians)
+  add_library(
+    find_hits_with_gaussians_design${d}_hof
+    MODULE
+    register_find_hits_with_gaussians_design${d}.cpp
+  )
+  target_link_libraries(
+    find_hits_with_gaussians_design${d}_hof
+    PRIVATE phlex::module find_hits_with_gaussians
+  )
 endforeach()
 
-add_library(find_hits_with_gaussians_cell_id_hof MODULE
-            register_find_hits_with_gaussians_cell_id.cpp)
-target_link_libraries(find_hits_with_gaussians_cell_id_hof PRIVATE
-                      phlex::module)
+add_library(
+  find_hits_with_gaussians_cell_id_hof
+  MODULE
+  register_find_hits_with_gaussians_cell_id.cpp
+)
+target_link_libraries(find_hits_with_gaussians_cell_id_hof PRIVATE phlex::module)
 
-add_library(print_hits_to_file_hof MODULE
-            register_print_hits_to_file.cpp)
-target_link_libraries(print_hits_to_file_hof PRIVATE
-                      phlex::module find_hits_with_gaussians)
+add_library(print_hits_to_file_hof MODULE register_print_hits_to_file.cpp)
+target_link_libraries(print_hits_to_file_hof PRIVATE phlex::module find_hits_with_gaussians)
 
 file(GLOB test_files ${CMAKE_CURRENT_SOURCE_DIR}/*.dat)
 file(COPY ${test_files} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
@@ -81,17 +88,18 @@ endif()
 set(all_run_tests "")
 
 foreach(d IN LISTS designs)
-  set(run_test   "GausHitFinderTestDesign${d}")
-  set(fixture    "GausHitFinderDesign${d}Fixture")
+  set(run_test "GausHitFinderTestDesign${d}")
+  set(fixture "GausHitFinderDesign${d}Fixture")
   set(output_prefix "hits_design${d}")
 
   # --- Run test ---
-  add_test(NAME ${run_test}
-           COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh
-                        $<TARGET_FILE:phlex>
-                        ${CMAKE_CURRENT_SOURCE_DIR}/test_find_hits_with_gaussians_design${d}.jsonnet
-                        ${output_prefix}
-           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  add_test(
+    NAME ${run_test}
+    COMMAND
+      bash ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh $<TARGET_FILE:phlex>
+      ${CMAKE_CURRENT_SOURCE_DIR}/test_find_hits_with_gaussians_design${d}.jsonnet ${output_prefix}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
   set_tests_properties(${run_test} PROPERTIES FIXTURES_SETUP ${fixture})
   list(APPEND all_run_tests ${run_test})
 
@@ -101,23 +109,20 @@ foreach(d IN LISTS designs)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
       add_test(
         NAME ${compare_test}
-        COMMAND diff -q -s
-        ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
-        ${CMAKE_CURRENT_BINARY_DIR}/${output_prefix}_${n}.txt
+        COMMAND
+          diff -q -s ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
+          ${CMAKE_CURRENT_BINARY_DIR}/${output_prefix}_${n}.txt
       )
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
       add_test(
         NAME ${compare_test}
-        COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/compare_hits.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
-        ${CMAKE_CURRENT_BINARY_DIR}/${output_prefix}_${n}.txt
+        COMMAND
+          ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/compare_hits.py
+          ${CMAKE_CURRENT_SOURCE_DIR}/art_hits_${n}.txt
+          ${CMAKE_CURRENT_BINARY_DIR}/${output_prefix}_${n}.txt
       )
     else()
-      add_test(
-        NAME ${compare_test}
-        COMMAND ${CMAKE_COMMAND} -E false
-      )
+      add_test(NAME ${compare_test} COMMAND ${CMAKE_COMMAND} -E false)
     endif()
     set_tests_properties(${compare_test} PROPERTIES FIXTURES_REQUIRED ${fixture})
   endforeach()

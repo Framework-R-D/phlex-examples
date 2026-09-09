@@ -1,0 +1,60 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+# Everything in copied_from_larsoft_minor_edits is copied from larsoft and should not be modified.
+# It is excluded from pre-commit checks to avoid unnecessary noise.
+exclude: ^migration/gauss_hit_finder/copied_from_larsoft_minor_edits/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-vcs-permalinks
+      - id: check-executables-have-shebangs
+      - id: mixed-line-ending
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.19
+    hooks:
+      - id: ruff-format
+        types_or: [python, pyi]
+      - id: ruff
+        types_or: [python, pyi]
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v20.1.8
+    hooks:
+      - id: clang-format
+        types_or: [c++, c, cuda]
+  - repo: local
+    hooks:
+      - id: fix-header-guards
+        name: fix C++ header guards
+        entry: python3 scripts/fix_header_guards.py
+        language: system
+        files: \.(h|hpp)$
+  - repo: https://github.com/BlankSpruce/gersemi-pre-commit
+    rev: 0.27.7
+    hooks:
+      - id: gersemi
+  - repo: https://github.com/google/go-jsonnet
+    rev: v0.22.0
+    hooks:
+      - id: jsonnet-format
+      - id: jsonnet-lint
+        # The files in test/max-parallelism import files that are generated during the build.
+        # We therefore exclude them from linting, but still format them.
+        exclude: ^test/max-parallelism
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.8.4
+    hooks:
+      - id: prettier
+        types_or: [yaml]
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.22.1
+    hooks:
+      - id: markdownlint-cli2
+        args: [--fix]

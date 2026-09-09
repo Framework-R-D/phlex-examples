@@ -4,6 +4,7 @@ This test code implements the smallest possible run that does something
 real. It serves as a "Hello, World" equivalent for running Python code.
 """
 
+
 def subtract(i: int, j: int) -> int:
     """Subtract 'j' from 'i' and return the difference.
 
@@ -36,6 +37,6 @@ def PHLEX_REGISTER_ALGORITHMS(m, config):
     Returns:
         None
     """
-    m.transform(subtract,
-                input_family = config["input"],
-                output_product_suffixes = config["output"])
+    m.transform(
+        subtract, input_family=config["input"], output_product_suffixes=config["output"]
+    )

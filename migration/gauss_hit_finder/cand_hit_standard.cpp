@@ -6,10 +6,9 @@
 
 namespace examples {
 
-  merge_hit_candidate_vec
-  cand_hit_standard::find_and_merge_hit_candidates(
-      wire_roi_data const& roi_data,
-      std::vector<float> const& roi_thresholds) {
+  merge_hit_candidate_vec cand_hit_standard::find_and_merge_hit_candidates(
+    wire_roi_data const& roi_data, std::vector<float> const& roi_thresholds)
+  {
     hit_candidate_vec hit_candidates;
 
     find_hit_candidates(roi_data.range.begin(),
@@ -21,7 +20,8 @@ namespace examples {
     merge_hit_candidate_vec merged_hit_candidates;
 
     // If no hits then nothing to do here
-    if (hit_candidates.empty()) return merged_hit_candidates;
+    if (hit_candidates.empty())
+      return merged_hit_candidates;
 
     // The idea is to group hits that "touch" so they can be part of common fit, those that
     // don't "touch" are fit independently. So here we build the output vector to achieve that
@@ -29,7 +29,7 @@ namespace examples {
     int last_tick = hit_candidates.front().stop_tick;
 
     // Step through the input hit candidates and group them by proximity
-    for (const auto& hit_candidate : hit_candidates) {
+    for (auto const& hit_candidate : hit_candidates) {
       // Check condition that we have a new grouping
       if (int(hit_candidate.start_tick) - last_tick > 1) {
         merged_hit_candidates.emplace_back(grouped_hit_candidates);
@@ -42,16 +42,18 @@ namespace examples {
     }
 
     // Check end condition
-    if (!grouped_hit_candidates.empty()) merged_hit_candidates.emplace_back(grouped_hit_candidates);
+    if (!grouped_hit_candidates.empty())
+      merged_hit_candidates.emplace_back(grouped_hit_candidates);
 
     return merged_hit_candidates;
   }
 
   void cand_hit_standard::find_hit_candidates(std::vector<float>::const_iterator start,
-                           std::vector<float>::const_iterator stop,
-                           const std::size_t roi_start_tick,
-                           const float roi_threshold,
-                           hit_candidate_vec& hit_candidates) {
+                                              std::vector<float>::const_iterator stop,
+                                              std::size_t const roi_start_tick,
+                                              float const roi_threshold,
+                                              hit_candidate_vec& hit_candidates)
+  {
     // Need a minimum number of ticks to do any work here
     if (std::distance(start, stop) > 4) {
       // Find the highest peak in the range given
@@ -66,10 +68,12 @@ namespace examples {
 
         while (first != start) {
           // Check for pathology where waveform goes too negative
-          if (*first < -roi_threshold) break;
+          if (*first < -roi_threshold)
+            break;
 
           // Check both sides of first and look for min/inflection point
-          if (*first < *(first + 1) && *first <= *(first - 1)) break;
+          if (*first < *(first + 1) && *first <= *(first - 1))
+            break;
 
           --first;
         }
@@ -84,10 +88,12 @@ namespace examples {
 
         while (last != stop - 1) {
           // Check for pathology where value goes too negative
-          if (*last < -roi_threshold) break;
+          if (*last < -roi_threshold)
+            break;
 
           // Check both sides of last and look for min/inflection point
-          if (*last <= *(last + 1) && *last < *(last - 1)) break;
+          if (*last <= *(last + 1) && *last < *(last - 1))
+            break;
 
           ++last;
         }

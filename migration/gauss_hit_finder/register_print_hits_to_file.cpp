@@ -20,12 +20,12 @@ PHLEX_REGISTER_ALGORITHMS(m, config)
   auto const layer = config.get<std::string>("layer");
   auto const filename_prefix = config.get<std::string>("filename_prefix");
 
-  m.observe("print_hits_to_file",
-            [filename_prefix](int cell_id, std::vector<recob::Hit> const& hits) {
-              examples::print_hits_to_file(filename_prefix, cell_id, hits);
-            },
-            concurrency::unlimited)
-      .input_family(
-          product_selector{.creator = "cell_info", .layer = layer},
-          product_selector{.creator = creator, .layer = layer});
+  m.observe(
+     "print_hits_to_file",
+     [filename_prefix](int cell_id, std::vector<recob::Hit> const& hits) {
+       examples::print_hits_to_file(filename_prefix, cell_id, hits);
+     },
+     concurrency::unlimited)
+    .input_family(product_selector{.creator = "cell_info", .layer = layer},
+                  product_selector{.creator = creator, .layer = layer});
 }

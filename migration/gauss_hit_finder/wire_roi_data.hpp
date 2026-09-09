@@ -1,10 +1,10 @@
-#ifndef PHLEX_EXAMPLES_MIGRATION_GAUSS_HIT_FINDER_WIRE_ROI_DATA_HPP
-#define PHLEX_EXAMPLES_MIGRATION_GAUSS_HIT_FINDER_WIRE_ROI_DATA_HPP
+#ifndef MIGRATION_GAUSS_HIT_FINDER_WIRE_ROI_DATA_HPP
+#define MIGRATION_GAUSS_HIT_FINDER_WIRE_ROI_DATA_HPP
 
-#include "copied_from_larsoft_minor_edits/geo_types.h"
 #include "copied_from_larsoft_minor_edits/RawTypes.h" // raw::ChannelID_t
-#include "copied_from_larsoft_minor_edits/sparse_vector.h"
 #include "copied_from_larsoft_minor_edits/Wire.h"
+#include "copied_from_larsoft_minor_edits/geo_types.h"
+#include "copied_from_larsoft_minor_edits/sparse_vector.h"
 
 namespace examples {
 
@@ -26,4 +26,4 @@ namespace examples {
 
 } // namespace examples
 
-#endif // PHLEX_EXAMPLES_MIGRATION_GAUSS_HIT_FINDER_WIRE_ROI_DATA_HPP
+#endif // MIGRATION_GAUSS_HIT_FINDER_WIRE_ROI_DATA_HPP
