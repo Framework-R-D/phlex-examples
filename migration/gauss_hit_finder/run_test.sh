@@ -24,7 +24,7 @@ for n in 0 1 2 3 4; do
 done
 
 # Run phlex
-"$phlex_exe" -c "$config_file"
+"$phlex_exe" -c "$config_file" --stage recotest
 phlex_exit=$?
 
 if [ $phlex_exit -ne 0 ]; then
