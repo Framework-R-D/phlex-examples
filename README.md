@@ -122,4 +122,4 @@ Processed layers:
 ```
 
 > [!NOTE]
-> For Phlex v0.4.0, Python data products cannot be written to output files.
+> For Phlex v0.4.3, Python data products cannot be written to output files.
