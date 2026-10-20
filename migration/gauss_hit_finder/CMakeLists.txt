@@ -7,7 +7,7 @@ add_library(
   find_hits_with_gaussians_design1.cpp
   find_hits_with_gaussians_design2.cpp
   find_hits_with_gaussians_design3.cpp
-  cand_hit_standard.cpp
+  find_hits_with_gaussians_design4.cpp
   copied_from_larsoft_minor_edits/Hit.cxx
   copied_from_larsoft_minor_edits/geo_types.cxx
   copied_from_larsoft_minor_edits/CandHitStandard.cxx
@@ -20,12 +20,26 @@ add_library(
 )
 target_link_libraries(find_hits_with_gaussians PRIVATE TBB::tbb fmt::fmt)
 
+add_library(waveform_helper SHARED waveform_helper.cpp)
+
+add_library(cand_hit_standard SHARED cand_hit_standard.cpp)
+
+add_library(cand_hit_derivative SHARED cand_hit_derivative.cpp)
+target_link_libraries(cand_hit_derivative PRIVATE waveform_helper)
+
 # Register providers for data products
 add_library(wires_source MODULE wires_source.cpp)
 target_link_libraries(wires_source PRIVATE phlex::module find_hits_with_gaussians)
 
 # Design variants used for both library registration and testing
-set(designs 0 1 2 3)
+set(
+  designs
+  0
+  1
+  2
+  3
+  4
+)
 
 # Register experiment libraries with Phlex
 foreach(d IN LISTS designs)
@@ -39,6 +53,20 @@ foreach(d IN LISTS designs)
     PRIVATE phlex::module find_hits_with_gaussians
   )
 endforeach()
+
+target_link_libraries(find_hits_with_gaussians_design3_hof PRIVATE cand_hit_standard)
+
+add_library(unfolds_design4_hof MODULE register_unfolds_design4.cpp)
+target_link_libraries(unfolds_design4_hof PRIVATE phlex::module find_hits_with_gaussians)
+
+add_library(cand_hit_standard_hof MODULE register_cand_hit_standard.cpp)
+target_link_libraries(cand_hit_standard_hof PRIVATE phlex::module cand_hit_standard)
+
+add_library(cand_hit_derivative_hof MODULE register_cand_hit_derivative.cpp)
+target_link_libraries(cand_hit_derivative_hof PRIVATE phlex::module cand_hit_derivative)
+
+add_library(folds_design4_hof MODULE register_folds_design4.cpp)
+target_link_libraries(folds_design4_hof PRIVATE phlex::module find_hits_with_gaussians)
 
 add_library(
   find_hits_with_gaussians_cell_id_hof
@@ -73,6 +101,10 @@ file(COPY ${test_files_art} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 #   design3 - like design2 but with a separate transform that finds
 #             and merges hit candidates inserted between the second
 #             unfold and the Gaussian hit-fitting transform
+#   design4 - like design3 except the registration file has been
+#             split into one registration for the unfolds, one for
+#             each of the two candidate finders, one for the rest
+#             of the hit finder, and one for the folds.
 #
 # All variants use a common wrapper script (run_test.sh) that deletes
 # stale output files before the running phlex and then verifies all
@@ -127,6 +159,18 @@ foreach(d IN LISTS designs)
     set_tests_properties(${compare_test} PROPERTIES FIXTURES_REQUIRED ${fixture})
   endforeach()
 endforeach()
+
+# --- Design4 with derivative candidate hit finder (run only, no comparison) ---
+set(run_test_deriv "GausHitFinderTestDesign4Derivatives")
+add_test(
+  NAME ${run_test_deriv}
+  COMMAND
+    bash ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh $<TARGET_FILE:phlex>
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_find_hits_with_gaussians_design4_derivatives.jsonnet
+    hits_design4_derivatives
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+list(APPEND all_run_tests ${run_test_deriv})
 
 # We need to include the library directory for 'generate_layers' on the PHLEX_PLUGIN_PATH.
 # Unfortunately, phlex does not have a target that easily does this (plugins are not intended

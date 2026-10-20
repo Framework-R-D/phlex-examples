@@ -16,7 +16,7 @@ repository.
 This example is based on `main` branch of `phlex` as of the
 last time the example was updated. It might need modifications
 to work with the newest version of `phlex`. The migration to
-phlex started with version of GausHitFinder_module.cc in
+phlex started with the version of GausHitFinder_module.cc in
 v10_05_00 of larreco which was the version in use with DUNE
 software at the time the migration work was started. If there
 is a request, I can update the example to a more recent version.
@@ -93,6 +93,45 @@ second input to the Gaussian hit-fitting transform.
 7. hit_candidate.hpp
 8. wire_roi_data.hpp
 
+Design 4 extends design 3 by splitting the registration
+into four separate modules: unfolds, a candidate-hit-finding
+transform, a Gaussian hit-fitting transform, and folds.
+Each module is in its own shared library so that individual
+pieces can be swapped independently. An alternative
+candidate-hit-finding implementation (`cand_hit_derivative`)
+is provided to demonstrate this swappability — it finds
+hit candidates using waveform derivatives instead of the
+threshold-based approach used by `cand_hit_standard`. Both
+implementations use shared utilities from `waveform_helper`.
+The algorithm logic is otherwise identical to design 3.
+
+The design 4 configurations import shared module defaults from `.libsonnet`
+files and override settings as needed. The print-to-file configuration requires
+the caller to supply both `creator` and `filename_prefix`.
+
+1. find_hits_with_gaussians_design4.hpp
+2. find_hits_with_gaussians_design4.cpp
+3. register_find_hits_with_gaussians_design4.cpp
+4. register_cand_hit_standard.cpp
+5. register_cand_hit_derivative.cpp
+6. register_unfolds_design4.cpp
+7. register_folds_design4.cpp
+8. test_find_hits_with_gaussians_design4.jsonnet
+9. test_find_hits_with_gaussians_design4_derivatives.jsonnet
+10. cand_hit_standard.hpp
+11. cand_hit_standard.cpp
+12. cand_hit_derivative.hpp
+13. cand_hit_derivative.cpp
+14. waveform_helper.hpp
+15. waveform_helper.cpp
+16. hit_candidate.hpp
+17. wire_roi_data.hpp
+18. cand_hit_standard.libsonnet
+19. cand_hit_derivative.libsonnet
+20. unfolds_design4.libsonnet
+21. find_hits_with_gaussians_design4.libsonnet
+22. folds_design4.libsonnet
+
 We plan to implement more prototype migrations
 of GausHitFinder in the future to explore the
 possibilities and execute tests.
@@ -118,9 +157,9 @@ temporary and not part of the migration example.
 7. art_hits_*.txt
 8. wires_*.dat
 9. register_find_hits_with_gaussians_cell_id.cpp
-10. examples_generate_layers.cpp
-11. run_test.sh
-12. compare_hits.py
+10. run_test.sh
+11. compare_hits.py
+12. print_hits_to_file.libsonnet
 
 ## Files copied from LArSoft
 
@@ -145,39 +184,19 @@ and folds? Does it make sense to have multiple transforms?
 We don't know the answers to these questions yet.
 Getting the single transform to work was a good first step.
 
-The next thing we implemented was replacing the
-outer `parallel_for` with an `unfold`, `transform`, and `fold`
-sequence of algorithms (design 1). After that, we created
-design 2 which also replaces the inner `parallel_for` (over ROIs)
-with a second `unfold`, `transform`, and `fold` sequence,
-resulting in a three-layer hierarchy (spill -> wire -> roi).
-Design 3 goes further by extracting the candidate-hit-finding
-step (`cand_hit_standard`) into its own transform, separate from
-the Gaussian hit-fitting transform. Both transforms receive
-`wire_roi_data` from the second unfold, and the merged hit
-candidates flow from `cand_hit_standard` into the fitting
-transform as a second input. A future design 4 will move the
-`cand_hit_standard` registration into a separate module so that
-alternative candidate-hit-finding implementations can be
-swapped in independently.
-We plan to run tests and compare the different versions.
+The next version (design 5) will combine the two unfolds into one
+and also the two folds into one. We do not have concrete plans
+yet for the versions that come after that.
 
 `Phlex` will not support the `Tools` feature that existed in
 `art`. One possibility is that algorithm nodes scheduled
 by `tbb::flow_graph` offer sufficient configurability that we
 don't need a separate plugin system like `Tools`.
-Another possibility is that we eventually implement a
-plugin system for `phlex`. In design 0, the two `Tool` types
-used in `GausHitFinder` are replaced with direct instantiations
-of a type similar to one of the plugin types (a vector of objects of type
-`CandHitStandard` and one object of type `PeakFitterMrqdt`). They
-needed some modification but are as close as reasonably possible
-to the original versions. In design 3, the candidate-hit-finding
-step is factored out as a separate `phlex` transform using a
-new standalone implementation (`cand_hit_standard` namespace)
-that uses new types (`hit_candidate`, `merge_hit_candidate_vec`)
-rather than the legacy `ICandidateHitFinder` types. A conversion
-to legacy types is done where `PeakFitterMrqdt` still requires them.
+As discussed above, the cand_hit_standard tool has been
+reimplemented as a transform. There was also a peak
+fitter tool in the LArSoft version of GausHitFinder.
+We might convert that to also be a transform or explore
+other alternatives related to `Tools`.
 
 I do not know yet how to deal with the fact that `GausHitFinder`
 can be configured to produce 1 or 2 output data products.
@@ -278,8 +297,10 @@ these data members are filled with default values.
     geo::WireID fWireID;        ///< WireID for the hit (Cryostat, TPC, Plane, Wire)
 ```
 
-This was done for all `phlex` versions of GausHitFinder. The output of all
-versions are identical with each other and with the `art` version.
+This was done for all `phlex` versions of GausHitFinder, except for the one
+using cand_hit_derivative. For cand_hit_derivative, we didn't take the time
+to make reference files and skipped comparisons. The output of all versions
+are identical with each other and with the `art` version.
 
 The `phlex` process was run with multithreading and that causes the order of
 `Hit` objects to vary from one execution to the next and also the order of

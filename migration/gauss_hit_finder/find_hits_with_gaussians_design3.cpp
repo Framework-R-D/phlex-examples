@@ -344,7 +344,7 @@ namespace examples {
         // ### Charge ###
         float charge =
           chargeFunc(peakMean, peakAmp, peakWidth, cfg.area_norms_vec[plane], startT, endT);
-        ;
+
         float chargeErr =
           std::sqrt(std::numbers::pi) * (peakAmpErr * peakWidthErr + peakWidthErr * peakAmpErr);
 
@@ -481,7 +481,7 @@ namespace examples {
         // Copy the hits we want to keep to the filtered hit collection
         for (auto const& filteredHit : filteredHitVec) {
           if (!cfg.filter_hits || hit_filter_alg.IsGoodHit(filteredHit)) {
-            filthitstruct_vec.push_back(std::move(filteredHit));
+            filthitstruct_vec.push_back(filteredHit);
           }
         }
       }
