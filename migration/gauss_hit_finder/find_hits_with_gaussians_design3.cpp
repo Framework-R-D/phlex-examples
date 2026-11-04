@@ -12,48 +12,8 @@
 #include "copied_from_larsoft_minor_edits/RawTypes.h"  // raw::ChannelID_t
 #include "copied_from_larsoft_minor_edits/geo_types.h" // geo::View_t, geo::SignalType, geo::WireID
 #include "find_hits_with_gaussians_design3.hpp"
-
-namespace {
-  // Convert from the new hit_candidate_vec type to the legacy
-  // ICandidateHitFinder::HitCandidateVec expected by PeakFitterMrqdt.
-  // In the near future, when we migrate the peak fitter code to
-  // be a transform, we should make it also use hit_candidate_vec
-  // and delete this copy.
-  examples::ICandidateHitFinder::HitCandidateVec to_legacy_candidates(
-    examples::hit_candidate_vec const& candidates)
-  {
-    examples::ICandidateHitFinder::HitCandidateVec result;
-    result.reserve(candidates.size());
-    for (auto const& c : candidates) {
-      result.push_back({.startTick = c.start_tick,
-                        .stopTick = c.stop_tick,
-                        .maxTick = c.max_tick,
-                        .minTick = c.min_tick,
-                        .maxDerivative = c.max_derivative,
-                        .minDerivative = c.min_derivative,
-                        .hitCenter = c.hit_center,
-                        .hitSigma = c.hit_sigma,
-                        .hitHeight = c.hit_height});
-    }
-    return result;
-  }
-
-  // This is an edited copy of the TMath::Gaus function from ROOT, since we
-  // don't want to depend on ROOT in this example.
-  double Gaus(double x, double mean, double sigma, bool norm)
-  {
-    if (sigma == 0)
-      return 1.e30;
-    double arg = (x - mean) / sigma;
-    // for |arg| > 39  result is zero in double precision
-    if (arg < -39.0 || arg > 39.0)
-      return 0.0;
-    double res = std::exp(-0.5 * arg * arg);
-    if (!norm)
-      return res;
-    return res / (2.50662827463100024 * sigma); //sqrt(2*Pi)=2.50662827463100024
-  }
-}
+#include "gaus.hpp"
+#include "legacy_hit_candidates.hpp"
 
 namespace examples {
 
@@ -344,7 +304,7 @@ namespace examples {
         // ### Charge ###
         float charge =
           chargeFunc(peakMean, peakAmp, peakWidth, cfg.area_norms_vec[plane], startT, endT);
-        ;
+
         float chargeErr =
           std::sqrt(std::numbers::pi) * (peakAmpErr * peakWidthErr + peakWidthErr * peakAmpErr);
 
@@ -481,7 +441,7 @@ namespace examples {
         // Copy the hits we want to keep to the filtered hit collection
         for (auto const& filteredHit : filteredHitVec) {
           if (!cfg.filter_hits || hit_filter_alg.IsGoodHit(filteredHit)) {
-            filthitstruct_vec.push_back(std::move(filteredHit));
+            filthitstruct_vec.push_back(filteredHit);
           }
         }
       }

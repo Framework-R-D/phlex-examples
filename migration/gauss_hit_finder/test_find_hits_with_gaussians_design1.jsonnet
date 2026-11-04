@@ -18,8 +18,8 @@
   modules: {
     find_hits_with_gaussians_design1_cpp: {
       cpp: 'find_hits_with_gaussians_design1_hof',
-      layer_unfold_input: 'spill',
-      layer_unfold_output: 'wire',
+      unfold_input_layer: 'spill',
+      unfold_output_layer: 'wire',
 
       filter_hits: false,
       long_max_hits_vec: [1, 1, 1],

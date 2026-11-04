@@ -18,9 +18,9 @@
   modules: {
     find_hits_with_gaussians_design3_cpp: {
       cpp: 'find_hits_with_gaussians_design3_hof',
-      layer_vector_of_wires: 'spill',
-      layer_wire: 'wire',
-      layer_roi: 'roi',
+      vector_of_wires_layer: 'spill',
+      wire_layer: 'wire',
+      roi_layer: 'roi',
       roi_threshold: [6.0, 6.0, 6.0],
 
       filter_hits: false,

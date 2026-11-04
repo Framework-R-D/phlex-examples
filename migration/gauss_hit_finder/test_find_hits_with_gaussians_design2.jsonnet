@@ -18,9 +18,9 @@
   modules: {
     find_hits_with_gaussians_design2_cpp: {
       cpp: 'find_hits_with_gaussians_design2_hof',
-      layer_vector_of_wires: 'spill',
-      layer_wire: 'wire',
-      layer_roi: 'roi',
+      vector_of_wires_layer: 'spill',
+      wire_layer: 'wire',
+      roi_layer: 'roi',
 
       filter_hits: false,
       long_max_hits_vec: [1, 1, 1],
